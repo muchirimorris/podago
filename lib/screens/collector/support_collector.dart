@@ -6,12 +6,7 @@ class CollectorSupportScreen extends StatelessWidget {
   const CollectorSupportScreen({super.key});
 
   // --- Professional Theme Colors ---
-  static const Color kPrimaryColor = Color(0xFF00695C); // Teal 800
-  static const Color kAccentColor = Color(0xFF009688);  // Teal 500
-  static const Color kBackgroundColor = Color(0xFFF5F7FA);
-  static const Color kCardColor = Colors.white;
-  static const Color kTextPrimary = Color(0xFF263238);
-  static const Color kTextSecondary = Color(0xFF78909C);
+  // Using AppTheme constants
 
   Future<void> _launchPhone(String phoneNumber) async {
     final Uri telLaunchUri = Uri(
@@ -53,10 +48,10 @@ class CollectorSupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Support Center", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
-        backgroundColor: kPrimaryColor,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         centerTitle: false,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -68,20 +63,20 @@ class CollectorSupportScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            _buildHeroCard(),
+            _buildHeroCard(context),
             const SizedBox(height: 24),
 
             // Contact Grid
-            const Text("Get in Touch", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary)),
+            Text("Get in Touch", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
             const SizedBox(height: 12),
-            _buildContactGrid(),
+            _buildContactGrid(context),
 
             const SizedBox(height: 24),
 
             // FAQ
-            const Text("Frequently Asked Questions", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary)),
+            Text("Frequently Asked Questions", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
             const SizedBox(height: 12),
-            _buildFAQList(),
+            _buildFAQList(context),
 
             const SizedBox(height: 24),
 
@@ -95,18 +90,18 @@ class CollectorSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroCard() {
+  Widget _buildHeroCard(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [kPrimaryColor, kPrimaryColor.withOpacity(0.8)],
+          colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: kPrimaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: Theme.of(context).primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Row(
         children: [
@@ -134,7 +129,7 @@ class CollectorSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactGrid() {
+  Widget _buildContactGrid(BuildContext context) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -144,6 +139,7 @@ class CollectorSupportScreen extends StatelessWidget {
       childAspectRatio: 1.4,
       children: [
         _buildContactTile(
+          context,
           icon: Icons.phone_in_talk,
           title: "Call Us",
           subtitle: "+254 792...",
@@ -151,6 +147,7 @@ class CollectorSupportScreen extends StatelessWidget {
           onTap: () => _launchPhone("+254792746672"),
         ),
         _buildContactTile(
+          context,
           icon: Icons.chat_bubble_outline,
           title: "WhatsApp",
           subtitle: "Chat Support",
@@ -158,6 +155,7 @@ class CollectorSupportScreen extends StatelessWidget {
           onTap: _launchWhatsApp,
         ),
         _buildContactTile(
+          context,
           icon: Icons.email_outlined,
           title: "Email",
           subtitle: "Send details",
@@ -168,7 +166,8 @@ class CollectorSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactTile({
+  Widget _buildContactTile(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
@@ -183,7 +182,7 @@ class CollectorSupportScreen extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: kCardColor,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 4))],
           ),
@@ -197,9 +196,9 @@ class CollectorSupportScreen extends StatelessWidget {
                 child: Icon(icon, color: color, size: 20),
               ),
               const Spacer(),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kTextPrimary)),
+              Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
               const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(fontSize: 11, color: kTextSecondary)),
+              Text(subtitle, style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodyMedium?.color)),
             ],
           ),
         ),
@@ -207,31 +206,35 @@ class CollectorSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFAQList() {
+  Widget _buildFAQList(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)],
       ),
       child: Column(
         children: [
           _buildFAQItem(
+            context,
             "How do I register a new farmer?",
             "Go to the Dashboard and tap the 'person with plus' icon in the top right corner. Fill in the required details.",
             showDivider: true,
           ),
           _buildFAQItem(
+            context,
             "Can I edit records?",
             "For security reasons, records cannot be edited after submission. Please contact admin for corrections.",
             showDivider: true,
           ),
           _buildFAQItem(
+            context,
             "What if I lose internet?",
             "The app automatically saves data locally. It will sync to the cloud once you are back online.",
             showDivider: true,
           ),
           _buildFAQItem(
+            context,
             "How do I reset a PIN?",
             "Contact support using the buttons above to request a PIN reset for a farmer.",
             showDivider: false,
@@ -241,17 +244,17 @@ class CollectorSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFAQItem(String question, String answer, {bool showDivider = true}) {
+  Widget _buildFAQItem(BuildContext context, String question, String answer, {bool showDivider = true}) {
     return Column(
       children: [
         Theme(
           data: ThemeData().copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
             tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            title: Text(question, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kTextPrimary)),
+            title: Text(question, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
             childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             children: [
-              Text(answer, style: const TextStyle(fontSize: 13, color: kTextSecondary, height: 1.5)),
+              Text(answer, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color, height: 1.5)),
             ],
           ),
         ),

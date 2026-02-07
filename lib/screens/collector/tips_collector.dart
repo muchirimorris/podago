@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:podago/widgets/bottom_nav_bar.dart';
+import 'package:podago/utils/app_theme.dart'; // NEW
 
 // --- Model (Preserved) ---
 class CollectorTip {
@@ -40,12 +41,7 @@ class CollectorTipsScreen extends StatefulWidget {
 
 class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
   // --- Professional Theme Colors ---
-  static const Color kPrimaryColor = Color(0xFF00695C); // Teal 800
-  static const Color kAccentColor = Color(0xFFEF6C00);  // Orange 800 (for tips accent)
-  static const Color kBackgroundColor = Color(0xFFF5F7FA);
-  static const Color kCardColor = Colors.white;
-  static const Color kTextPrimary = Color(0xFF263238);
-  static const Color kTextSecondary = Color(0xFF78909C);
+  // Using AppTheme constants
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<CollectorTip> tips = [];
@@ -90,10 +86,10 @@ class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Collection Guide", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
-        backgroundColor: kPrimaryColor,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         centerTitle: false,
         actions: [
@@ -119,7 +115,7 @@ class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
                           _buildHeaderCard(),
                           
                           const SizedBox(height: 24),
-                          const Text("Latest Procedures", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary)),
+                          Text("Latest Procedures", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
                           const SizedBox(height: 12),
 
                           // List
@@ -148,12 +144,12 @@ class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [kPrimaryColor, kPrimaryColor.withOpacity(0.8)],
+          colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: kPrimaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: Theme.of(context).primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Row(
         children: [
@@ -183,7 +179,7 @@ class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
   Widget _buildTipCard(CollectorTip tip, int index) {
     return Container(
       decoration: BoxDecoration(
-        color: kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 4))],
       ),
@@ -191,7 +187,7 @@ class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: const BoxDecoration(
-            border: Border(left: BorderSide(color: kAccentColor, width: 4)), // Orange accent for tips
+            border: Border(left: BorderSide(color: Colors.orange, width: 4)), // Orange accent for tips
           ),
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -204,21 +200,21 @@ class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: kAccentColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                        child: Text("TIP #${index + 1}", style: const TextStyle(color: kAccentColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                        decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                        child: const Text("TIP", style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(width: 8),
                       if (tip.approved)
-                        const Icon(Icons.verified, size: 14, color: kPrimaryColor),
+                        Icon(Icons.verified, size: 14, color: Theme.of(context).primaryColor),
                     ],
                   ),
-                  Text(_formatDate(tip.createdAt), style: const TextStyle(color: kTextSecondary, fontSize: 10)),
+                  Text(_formatDate(tip.createdAt), style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 10)),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
                 tip.content,
-                style: const TextStyle(fontSize: 14, color: kTextPrimary, height: 1.5, fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.5, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 12),
               Row(
@@ -237,7 +233,7 @@ class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
   // --- States ---
 
   Widget _buildLoadingState() {
-    return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+    return Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor));
   }
 
   Widget _buildErrorState() {
@@ -247,12 +243,12 @@ class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
         children: [
           const Icon(Icons.cloud_off, size: 60, color: Colors.grey),
           const SizedBox(height: 16),
-          const Text("Unable to load tips", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary)),
-          const Text("Check your internet connection", style: TextStyle(color: kTextSecondary)),
+          Text("Unable to load tips", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+          Text("Check your internet connection", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
           const SizedBox(height: 24),
           TextButton(
             onPressed: _fetchTips,
-            style: TextButton.styleFrom(foregroundColor: kPrimaryColor),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).primaryColor),
             child: const Text("Try Again"),
           )
         ],
@@ -267,13 +263,13 @@ class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
         children: [
           Icon(Icons.library_books_outlined, size: 60, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          const Text("No protocols available", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary)),
+          Text("No protocols available", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
           const SizedBox(height: 8),
-          const Text("Check back later for updates", style: TextStyle(color: kTextSecondary)),
+          Text("Check back later for updates", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
           const SizedBox(height: 24),
           TextButton(
             onPressed: _fetchTips,
-            style: TextButton.styleFrom(foregroundColor: kPrimaryColor),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).primaryColor),
             child: const Text("Refresh"),
           )
         ],

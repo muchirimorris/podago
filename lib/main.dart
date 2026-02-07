@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+import 'package:podago/providers/theme_provider.dart';
 
 import 'firebase_options.dart';
 
@@ -29,16 +31,26 @@ Future<void> main() async {
 
 
 
+
 class PodagoApp extends StatelessWidget {
   const PodagoApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Podago',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme, // Use the new theme
-      home: const AuthGate(),
+    return ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'Podago',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: const AuthGate(),
+          );
+        },
+      ),
     );
   }
 }

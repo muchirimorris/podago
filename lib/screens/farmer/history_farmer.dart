@@ -71,24 +71,8 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
 
       final feedDeductions = paymentsSnapshot.docs.where((doc) {
         final data = doc.data();
-        return data['type'] == 'feed_deduction' && data['status'] != 'processed'; // Show only pending/active deductions here or all? Logic says != processed usually means active. But for history we might want all? 
-        // Logic check: Previously it was 'status' != 'processed'. Wait, usually processed means "done/paid". 
-        // If we want history, we should probably show ALL deductions? 
-        // But the previous code had `&& data['status'] != 'processed'`. 
-        // Let's stick to previous code logic to be safe, but "History" usually implies everything.
-        // However, `processPayment` creates a PAYMENT record. 
-        // Maybe these are separate "Deduction requests" vs "Deduction payments". 
-        // Let's trust the previous logic which filtered them. 
-        return true; // actually, for history, let's show ALL. 
-        // Wait, the previous code was: return data['type'] == 'feed_deduction' && data['status'] != 'processed';
-        // If I change it, I might break something. Let's look at the previous code again on line 74 of the original file.
-        // It says `return data['type'] == 'feed_deduction' && data['status'] != 'processed';`
-        // I will keep it identical to ensure I don't introduce a regression in logic I don't fully understand yet.
+        return data['type'] == 'feed_deduction'; // Fetch ALL deductions (Pending & Processed)
       }).toList();
-      
-      // Actually, checking line 74 again...
-      // `final feedDeductions = paymentsSnapshot.docs.where((doc) { ... return data['type'] == 'feed_deduction' && data['status'] != 'processed'; }).toList();`
-      // This is consistent. I will stick to it.
 
       final milkLogsQuery = FirebaseFirestore.instance.collection('milk_logs').where('farmerId', isEqualTo: widget.farmerId).orderBy('date', descending: true);
       final milkLogsSnapshot = await milkLogsQuery.get();
@@ -118,11 +102,22 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
       totalMilkIncome = milkPayments.fold(0.0, (sum, doc) => sum + ((doc.data() as Map<String, dynamic>)['amount'] ?? 0.0));
     }
 
+    // Pending Milk (Using Historical Price)
     double totalPendingMilk = pendingMilkLogs.fold(0.0, (sum, doc) {
-      return sum + (((doc.data() as Map<String, dynamic>)['quantity'] ?? 0).toDouble() * _pricePerLiter);
+      final data = doc.data() as Map<String, dynamic>;
+      final price = (data['pricePerLiter'] ?? _pricePerLiter).toDouble();
+      return sum + ((data['quantity'] ?? 0).toDouble() * price);
     });
 
+    // All Time Deductions (For Overview)
     double totalFeedDeductions = feedDeductions.fold(0.0, (sum, doc) {
+      final amount = (doc.data() as Map<String, dynamic>)['amount'] ?? 0.0;
+      return sum + (amount < 0 ? amount.abs() : amount);
+    });
+
+    // Pending Deductions Only (For Net Pay Calculation)
+    final pendingDeductionDocs = feedDeductions.where((doc) => (doc.data() as Map<String, dynamic>)['status'] != 'processed');
+    double totalPendingDeductions = pendingDeductionDocs.fold(0.0, (sum, doc) {
       final amount = (doc.data() as Map<String, dynamic>)['amount'] ?? 0.0;
       return sum + (amount < 0 ? amount.abs() : amount);
     });
@@ -130,10 +125,10 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
     double deductionsAppliedToPending = 0.0;
     double remainingPendingAfterDeductions = 0.0;
 
-    if (totalFeedDeductions > 0 && totalPendingMilk > 0) {
-      if (totalFeedDeductions <= totalPendingMilk) {
-        deductionsAppliedToPending = totalFeedDeductions;
-        remainingPendingAfterDeductions = totalPendingMilk - totalFeedDeductions;
+    if (totalPendingDeductions > 0 && totalPendingMilk > 0) {
+      if (totalPendingDeductions <= totalPendingMilk) {
+        deductionsAppliedToPending = totalPendingDeductions;
+        remainingPendingAfterDeductions = totalPendingMilk - totalPendingDeductions;
       } else {
         deductionsAppliedToPending = totalPendingMilk;
         remainingPendingAfterDeductions = 0.0;
@@ -146,7 +141,8 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
     return {
       'totalMilkIncome': totalMilkIncome,
       'totalPendingMilk': totalPendingMilk,
-      'totalFeedDeductions': totalFeedDeductions,
+      'totalFeedDeductions': totalFeedDeductions, // All Time
+      'totalPendingDeductions': totalPendingDeductions, // Pending Only
       'remainingPendingAfterDeductions': remainingPendingAfterDeductions,
       'deductionsAppliedToPending': deductionsAppliedToPending,
     };
@@ -157,7 +153,7 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: AppTheme.kBackground,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: const Text("History"),
           elevation: 0,
@@ -316,6 +312,9 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
           const SizedBox(height: 12),
           _buildNetPendingCard(paymentTotals),
           
+          const SizedBox(height: 12),
+          _buildMonthlyPendingBreakdown(paymentData),
+
           const SizedBox(height: 24),
           _buildSectionTitle("Transaction History"),
           const SizedBox(height: 12),
@@ -345,6 +344,117 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+
+  // --- Monthly Breakdown Widget ---
+  Widget _buildMonthlyPendingBreakdown(Map<String, dynamic> paymentData) {
+    final milkLogs = paymentData['milkLogs'] as List<DocumentSnapshot>;
+    final feedDeductions = paymentData['feedDeductions'] as List<DocumentSnapshot>;
+
+    // Filter for PENDING only
+    final pendingMilk = milkLogs.where((doc) => (doc.data() as Map<String, dynamic>)['status'] == 'pending').toList();
+    final pendingDeductions = feedDeductions.where((doc) => (doc.data() as Map<String, dynamic>)['status'] != 'processed').toList();
+
+    if (pendingMilk.isEmpty && pendingDeductions.isEmpty) return const SizedBox.shrink();
+
+    // Group by Month
+    final Map<String, Map<String, double>> monthlyStats = {};
+
+    void addToMonth(DateTime date, double milkAmount, double deductionAmount) {
+      final key = DateFormat('MMMM yyyy').format(date);
+      if (!monthlyStats.containsKey(key)) {
+        monthlyStats[key] = {'milk': 0.0, 'deduction': 0.0};
+      }
+      monthlyStats[key]!['milk'] = monthlyStats[key]!['milk']! + milkAmount;
+      monthlyStats[key]!['deduction'] = monthlyStats[key]!['deduction']! + deductionAmount;
+    }
+
+    // Process Milk
+    for (var doc in pendingMilk) {
+      final data = doc.data() as Map<String, dynamic>;
+      final date = (data['date'] as Timestamp).toDate();
+      final price = (data['pricePerLiter'] ?? _pricePerLiter).toDouble();
+      final amount = (data['quantity'] ?? 0).toDouble() * price;
+      addToMonth(date, amount, 0);
+    }
+
+    // Process Deductions
+    for (var doc in pendingDeductions) {
+      final data = doc.data() as Map<String, dynamic>;
+      final date = (data['createdAt'] as Timestamp).toDate();
+      final amount = (data['amount'] ?? 0).toDouble().abs();
+      addToMonth(date, 0, amount);
+    }
+
+    // Create Cards
+    final sortedKeys = monthlyStats.keys.toList();
+    // Sort keys based on date (parsed back from string is expensive, but list is small. Or rely on insertion if chronological? 
+    // Data came sorted, so keys might be roughly sorted but mixed. Let's precise sort.)
+    sortedKeys.sort((a, b) {
+      final da = DateFormat('MMMM yyyy').parse(a);
+      final db = DateFormat('MMMM yyyy').parse(b);
+      return db.compareTo(da); // Descending
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        const Text("Projected Monthly Pay", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+        const SizedBox(height: 8),
+        ...sortedKeys.map((month) {
+          final stats = monthlyStats[month]!;
+          final gross = stats['milk']!;
+          final deductions = stats['deduction']!;
+          final net = gross - deductions;
+          final isPositive = net > 0;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                 Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.kPrimaryGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    month,
+                    style: const TextStyle(color: AppTheme.kPrimaryGreen, fontWeight: FontWeight.bold, fontSize: 11),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Gross: KES ${NumberFormat.compact().format(gross)}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      if (deductions > 0)
+                        Text("Ded: - KES ${NumberFormat.compact().format(deductions)}", style: TextStyle(fontSize: 11, color: Colors.red.shade400)),
+                    ],
+                  ),
+                ),
+                Text(
+                  "KES ${NumberFormat("#,###").format(net)}",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, 
+                    color: isPositive ? AppTheme.kPrimaryGreen : Colors.red,
+                    fontSize: 14
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ],
     );
   }
 
@@ -401,7 +511,7 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.kTextPrimary),
+      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
     );
   }
 
@@ -409,7 +519,7 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
@@ -424,8 +534,8 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
           const SizedBox(height: 12),
           Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.kTextPrimary)),
-          Text(subtitle, style: const TextStyle(fontSize: 10, color: AppTheme.kTextSecondary)),
+          Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
+          Text(subtitle, style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodyMedium?.color)),
         ],
       ),
     );
@@ -501,15 +611,15 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.kPrimaryGreen : Colors.white,
+          color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? AppTheme.kPrimaryGreen : Colors.grey.shade300),
-          boxShadow: isSelected ? [BoxShadow(color: AppTheme.kPrimaryGreen.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))] : null,
+          border: Border.all(color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300),
+          boxShadow: isSelected ? [BoxShadow(color: Theme.of(context).primaryColor.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))] : null,
         ),
         child: Center(
           child: Text(
             label,
-            style: TextStyle(color: isSelected ? Colors.white : AppTheme.kTextSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+            style: TextStyle(color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color, fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),
       ),
@@ -528,7 +638,7 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border(left: BorderSide(color: isDeduction ? Colors.red : Colors.green, width: 4)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4)],
@@ -538,8 +648,8 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(isDeduction ? 'Feed Deduction' : 'Milk Payment', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text(DateFormat('MMM dd • hh:mm a').format(date), style: const TextStyle(color: AppTheme.kTextSecondary, fontSize: 11)),
+              Text(isDeduction ? 'Feed Deduction' : 'Milk Payment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
+              Text(DateFormat('MMM dd • hh:mm a').format(date), style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 11)),
             ],
           ),
           const Spacer(),
@@ -571,7 +681,7 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)],
       ),
@@ -587,16 +697,16 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("${quantity.toStringAsFixed(1)} Liters", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Text("${quantity.toStringAsFixed(1)} Liters", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).textTheme.bodyLarge?.color)),
                 const SizedBox(height: 4),
-                Text(DateFormat('MMM dd, yyyy').format(date), style: const TextStyle(color: AppTheme.kTextSecondary, fontSize: 11)),
+                Text(DateFormat('MMM dd, yyyy').format(date), style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 11)),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text("KES ${amount.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              Text("KES ${amount.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

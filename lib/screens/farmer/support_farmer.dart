@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:podago/widgets/bottom_nav_bar.dart';
 import 'package:podago/utils/app_theme.dart'; // NEW
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FarmerSupportScreen extends StatelessWidget {
   final String farmerId;
@@ -69,7 +70,7 @@ class FarmerSupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.kBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Help & Support"),
       ),
@@ -83,8 +84,31 @@ class FarmerSupportScreen extends StatelessWidget {
             _buildHeroCard(),
             const SizedBox(height: 24),
 
+            // --- Account Security Section ---
+            Text("Account Security", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)],
+              ),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.lock_reset, color: Colors.orange),
+                ),
+                title: Text("Change Login PIN", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                subtitle: Text("Update your 4-digit security PIN", style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color)),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                onTap: () => _showChangePinDialog(context),
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // --- Contact Grid (Replaces vertical list) ---
-            const Text("Contact Us", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.kTextPrimary)),
+            Text("Contact Us", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
             const SizedBox(height: 12),
             GridView.count(
               shrinkWrap: true,
@@ -100,6 +124,7 @@ class FarmerSupportScreen extends StatelessWidget {
                   subtitle: "Talk to us",
                   color: Colors.blue,
                   onTap: () => _launchPhoneCall(context),
+                  context: context,
                 ),
                 _buildContactTile(
                   icon: Icons.chat_bubble,
@@ -107,6 +132,7 @@ class FarmerSupportScreen extends StatelessWidget {
                   subtitle: "Chat now",
                   color: Colors.green,
                   onTap: () => _launchWhatsApp(context),
+                  context: context,
                 ),
                 _buildContactTile(
                   icon: Icons.email,
@@ -114,6 +140,7 @@ class FarmerSupportScreen extends StatelessWidget {
                   subtitle: "Send details",
                   color: Colors.purple,
                   onTap: () => _launchEmail(context),
+                  context: context,
                 ),
                 _buildContactTile(
                   icon: Icons.sms,
@@ -121,6 +148,7 @@ class FarmerSupportScreen extends StatelessWidget {
                   subtitle: "Text us",
                   color: Colors.orange,
                   onTap: () => _launchSMS(context),
+                  context: context,
                 ),
               ],
             ),
@@ -128,9 +156,9 @@ class FarmerSupportScreen extends StatelessWidget {
             const SizedBox(height: 30),
 
             // --- FAQ Section ---
-            const Text("Frequently Asked Questions", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.kTextPrimary)),
+            Text("Frequently Asked Questions", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
             const SizedBox(height: 12),
-            _buildFAQList(),
+            _buildFAQList(context),
 
             const SizedBox(height: 24),
 
@@ -201,6 +229,7 @@ class FarmerSupportScreen extends StatelessWidget {
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
+    required BuildContext context,
   }) {
     return Material(
       color: Colors.transparent,
@@ -210,7 +239,7 @@ class FarmerSupportScreen extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.kCardColor,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
           ),
@@ -224,9 +253,9 @@ class FarmerSupportScreen extends StatelessWidget {
                 child: Icon(icon, color: color, size: 20),
               ),
               const Spacer(),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.kTextPrimary)),
+              Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
               const SizedBox(height: 4),
-              Text(subtitle, style: const TextStyle(fontSize: 11, color: AppTheme.kTextSecondary)),
+              Text(subtitle, style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodyMedium?.color)),
             ],
           ),
         ),
@@ -234,10 +263,10 @@ class FarmerSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFAQList() {
+  Widget _buildFAQList(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)],
       ),
@@ -246,16 +275,19 @@ class FarmerSupportScreen extends StatelessWidget {
           _buildFAQTile(
             "How do I update my profile?",
             "Navigate to your profile section and tap on 'Edit Profile' to update your personal details securely.",
+            context,
             showDivider: true,
           ),
           _buildFAQTile(
             "When are payments processed?",
             "Payments are automatically processed every Friday for the previous week's milk collection totals.",
+            context,
             showDivider: true,
           ),
           _buildFAQTile(
             "Incorrect milk records?",
             "If you spot a discrepancy, please use the WhatsApp button above to send us a screenshot of your receipt.",
+            context,
             showDivider: false,
           ),
         ],
@@ -263,23 +295,170 @@ class FarmerSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFAQTile(String question, String answer, {bool showDivider = true}) {
+  Widget _buildFAQTile(String question, String answer, BuildContext context, {bool showDivider = true}) {
     return Column(
       children: [
         Theme(
           data: ThemeData().copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
             tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            title: Text(question, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.kTextPrimary)),
+            title: Text(question, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
             childrenPadding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
             children: [
-              Text(answer, style: const TextStyle(fontSize: 13, color: AppTheme.kTextSecondary, height: 1.5)),
+              Text(answer, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color, height: 1.5)),
             ],
           ),
         ),
         if (showDivider)
           Divider(height: 1, thickness: 1, color: Colors.grey.shade100, indent: 20, endIndent: 20),
       ],
+    );
+  }
+
+  void _showChangePinDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _ChangePinDialog(farmerDocId: farmerId),
+    );
+  }
+}
+
+class _ChangePinDialog extends StatefulWidget {
+  final String farmerDocId;
+  const _ChangePinDialog({required this.farmerDocId});
+
+  @override
+  State<_ChangePinDialog> createState() => _ChangePinDialogState();
+}
+
+class _ChangePinDialogState extends State<_ChangePinDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _oldPinController = TextEditingController();
+  final _newPinController = TextEditingController();
+  final _confirmPinController = TextEditingController();
+  
+  bool _isLoading = false;
+  bool _obscureOld = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+
+  Future<void> _updatePin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Verify Old PIN
+      final docSnapshot = await FirebaseFirestore.instance.collection('users').doc(widget.farmerDocId).get();
+      if (!docSnapshot.exists) throw "User not found";
+      
+      final currentPin = docSnapshot.data()?['pin'];
+      if (currentPin != _oldPinController.text.trim()) {
+        throw "Incorrect current PIN";
+      }
+
+      // 2. Update to New PIN
+      await FirebaseFirestore.instance.collection('users').doc(widget.farmerDocId).update({
+        'pin': _newPinController.text.trim(),
+      });
+
+      if (mounted) {
+        Navigator.pop(context); // Close dialog
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PIN updated successfully"), backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}"), backgroundColor: Colors.red));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _oldPinController.dispose();
+    _newPinController.dispose();
+    _confirmPinController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Change Login PIN", style: TextStyle(fontWeight: FontWeight.bold)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildPinField("Current PIN", _oldPinController, _obscureOld, (val) {
+                setState(() => _obscureOld = val);
+              }),
+              const SizedBox(height: 16),
+              _buildPinField("New PIN (4 digits)", _newPinController, _obscureNew, (val) {
+                setState(() => _obscureNew = val);
+              }, validator: (val) {
+                if (val == null || val.length != 4) return "Must be 4 digits";
+                return null;
+              }),
+              const SizedBox(height: 16),
+              _buildPinField("Confirm New PIN", _confirmPinController, _obscureConfirm, (val) {
+                setState(() => _obscureConfirm = val);
+              }, validator: (val) {
+                if (val != _newPinController.text) return "PINs do not match";
+                return null;
+              }),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _updatePin,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.kPrimaryGreen,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: _isLoading 
+            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            : const Text("Update"),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPinField(
+    String label, 
+    TextEditingController controller, 
+    bool obscure, 
+    Function(bool) onToggle,
+    {String? Function(String?)? validator}
+  ) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscure,
+      keyboardType: TextInputType.number,
+      maxLength: 4,
+      validator: validator ?? (val) => (val == null || val.isEmpty) ? "Required" : null,
+      decoration: InputDecoration(
+        labelText: label,
+        counterText: "",
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        suffixIcon: IconButton(
+          icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+          onPressed: () => onToggle(!obscure),
+        ),
+      ),
     );
   }
 }

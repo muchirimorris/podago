@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:convert';
+import 'package:podago/utils/app_theme.dart'; // NEW
 
 class RegisterFarmerScreen extends StatefulWidget {
   const RegisterFarmerScreen({super.key});
@@ -14,12 +15,7 @@ class RegisterFarmerScreen extends StatefulWidget {
 
 class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
   // --- Professional Theme Colors ---
-  static const Color kPrimaryColor = Color(0xFF00695C); // Teal 800
-  static const Color kAccentColor = Color(0xFF009688);  // Teal 500
-  static const Color kBackgroundColor = Color(0xFFF5F7FA);
-  static const Color kCardColor = Colors.white;
-  static const Color kTextPrimary = Color(0xFF263238);
-  static const Color kTextSecondary = Color(0xFF78909C);
+  // Using AppTheme constants
 
   final _formKey = GlobalKey<FormState>();
   final TextEditingController nameCtrl = TextEditingController();
@@ -266,7 +262,7 @@ class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
   }
 
   void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: kPrimaryColor, behavior: SnackBarBehavior.floating));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Theme.of(context).primaryColor, behavior: SnackBarBehavior.floating));
   }
 
   void _showWarningSnackBar(String message) {
@@ -286,16 +282,16 @@ class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle, color: kPrimaryColor, size: 60),
+            Icon(Icons.check_circle, color: Theme.of(context).primaryColor, size: 60),
             const SizedBox(height: 16),
             const Text("Farmer registered! Please write down this ID:", textAlign: TextAlign.center),
             const SizedBox(height: 8),
             SelectableText(
               farmerId,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kPrimaryColor),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
             ),
             const SizedBox(height: 8),
-            const Text("This ID is required for the farmer to log in.", style: TextStyle(fontSize: 12, color: kTextSecondary)),
+            Text("This ID is required for the farmer to log in.", style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color)),
           ],
         ),
         actions: [
@@ -304,7 +300,7 @@ class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
               Navigator.pop(ctx); // Close dialog
               _clearFormAndNavigate();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
+            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
             child: const Text("Done"),
           )
         ],
@@ -381,10 +377,10 @@ class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: kBackgroundColor,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: const Text("Register Farmer", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
-          backgroundColor: kPrimaryColor,
+          backgroundColor: Theme.of(context).primaryColor,
           elevation: 0,
           leading: const BackButton(color: Colors.white),
           actions: [
@@ -442,7 +438,7 @@ class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
       ),
       child: Row(
         children: [
-          Icon(isOnline ? Icons.wifi : Icons.wifi_off, color: isOnline ? kPrimaryColor : Colors.orange.shade800),
+          Icon(isOnline ? Icons.wifi : Icons.wifi_off, color: isOnline ? Theme.of(context).primaryColor : Colors.orange.shade800),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -450,11 +446,11 @@ class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
               children: [
                 Text(
                   isOnline ? "Online Mode" : "Offline Mode",
-                  style: TextStyle(fontWeight: FontWeight.bold, color: isOnline ? kPrimaryColor : Colors.orange.shade900),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: isOnline ? Theme.of(context).primaryColor : Colors.orange.shade900),
                 ),
                 Text(
                   isOnline ? "Data saves directly to cloud" : "Data saves locally. Auto-sync when online.",
-                  style: TextStyle(fontSize: 12, color: isOnline ? kPrimaryColor.withOpacity(0.7) : Colors.orange.shade800),
+                  style: TextStyle(fontSize: 12, color: isOnline ? Theme.of(context).primaryColor.withOpacity(0.7) : Colors.orange.shade800),
                 ),
               ],
             ),
@@ -468,7 +464,7 @@ class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
@@ -477,7 +473,7 @@ class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Farmer Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextPrimary)),
+            Text("Farmer Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
             const SizedBox(height: 20),
             
             _buildInputField(
@@ -515,7 +511,7 @@ class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : _registerFarmer,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isOnline ? kPrimaryColor : Colors.orange,
+                  backgroundColor: isOnline ? Theme.of(context).primaryColor : Colors.orange,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -554,23 +550,23 @@ class _RegisterFarmerScreenState extends State<RegisterFarmerScreen> {
       obscureText: isPassword && obscurePin,
       keyboardType: keyboardType,
       validator: validator,
-      style: const TextStyle(fontWeight: FontWeight.w500, color: kTextPrimary),
+      style: TextStyle(fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodyLarge?.color),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: kTextSecondary),
+        labelStyle: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
         helperText: helperText,
-        prefixIcon: Icon(icon, color: kTextSecondary),
+        prefixIcon: Icon(icon, color: Theme.of(context).textTheme.bodyMedium?.color),
         suffixIcon: isPassword 
           ? IconButton(
-              icon: Icon(obscurePin ? Icons.visibility_off : Icons.visibility, color: kTextSecondary),
+              icon: Icon(obscurePin ? Icons.visibility_off : Icons.visibility, color: Theme.of(context).textTheme.bodyMedium?.color),
               onPressed: _togglePinVisibility,
             ) 
           : null,
         filled: true,
-        fillColor: kBackgroundColor,
+        fillColor: Theme.of(context).scaffoldBackgroundColor,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2)),
       ),
     );
   }

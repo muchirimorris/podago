@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:podago/widgets/bottom_nav_bar.dart';
+import 'package:podago/utils/app_theme.dart'; // NEW
 
 class CollectorHistoryScreen extends StatefulWidget {
   const CollectorHistoryScreen({super.key});
@@ -12,11 +13,7 @@ class CollectorHistoryScreen extends StatefulWidget {
 
 class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
   // --- Professional Theme Colors ---
-  static const Color kPrimaryColor = Color(0xFF00695C); // Teal 800
-  static const Color kBackgroundColor = Color(0xFFF5F7FA);
-  static const Color kCardColor = Colors.white;
-  static const Color kTextPrimary = Color(0xFF263238);
-  static const Color kTextSecondary = Color(0xFF78909C);
+  // Using AppTheme constants
 
   String? selectedFarmerId;
   DateTime? selectedDate;
@@ -31,8 +28,8 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: kPrimaryColor,
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).primaryColor,
               onPrimary: Colors.white,
             ),
           ),
@@ -72,10 +69,10 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
     }
 
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Collection History", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
-        backgroundColor: kPrimaryColor,
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
         centerTitle: false,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -122,12 +119,12 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
         }
 
         return Container(
-          color: kPrimaryColor,
+          color: Theme.of(context).primaryColor,
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
             ),
@@ -150,13 +147,13 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
   Widget _buildStatItem(IconData icon, String value, String label) {
     return Column(
       children: [
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kPrimaryColor)),
+        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
         const SizedBox(height: 4),
         Row(
           children: [
-            Icon(icon, size: 12, color: kTextSecondary),
+            Icon(icon, size: 12, color: Theme.of(context).textTheme.bodyMedium?.color),
             const SizedBox(width: 4),
-            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kTextSecondary)),
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color)),
           ],
         ),
       ],
@@ -166,18 +163,18 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
   Widget _buildFiltersSection() {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: kBackgroundColor,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Column(
         children: [
           // Search Bar
           TextField(
-            style: const TextStyle(fontSize: 14),
+            style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color),
             decoration: InputDecoration(
               hintText: "Search farmer or notes...",
               hintStyle: TextStyle(color: Colors.grey.shade400),
-              prefixIcon: const Icon(Icons.search, color: kTextSecondary),
+              prefixIcon: Icon(Icons.search, color: Theme.of(context).textTheme.bodyMedium?.color),
               filled: true,
-              fillColor: kCardColor,
+              fillColor: Theme.of(context).cardColor,
               contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
@@ -199,7 +196,7 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
                       height: 48,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: kCardColor,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.grey.shade200),
                       ),
@@ -207,15 +204,15 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
                         child: DropdownButton<String>(
                           value: selectedFarmerId,
                           isExpanded: true,
-                          hint: const Text("All Farmers", style: TextStyle(fontSize: 13, color: kTextSecondary)),
-                          icon: const Icon(Icons.arrow_drop_down, color: kTextSecondary),
+                          hint: Text("All Farmers", style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color)),
+                          icon: Icon(Icons.arrow_drop_down, color: Theme.of(context).textTheme.bodyMedium?.color),
                           items: [
-                            const DropdownMenuItem<String>(value: null, child: Text("All Farmers", style: TextStyle(fontSize: 13))),
+                            DropdownMenuItem<String>(value: null, child: Text("All Farmers", style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyLarge?.color))),
                             ...farmers.map((doc) {
                               final data = doc.data() as Map<String, dynamic>;
                               return DropdownMenuItem<String>(
                                 value: doc.id,
-                                child: Text(data['name'] ?? 'Unnamed', style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                                child: Text(data['name'] ?? 'Unnamed', style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyLarge?.color), overflow: TextOverflow.ellipsis),
                               );
                             }).toList(),
                           ],
@@ -237,20 +234,20 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
                     height: 48,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: kCardColor,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: selectedDate != null ? kPrimaryColor : Colors.grey.shade200),
+                      border: Border.all(color: selectedDate != null ? Theme.of(context).primaryColor : Colors.grey.shade200),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.calendar_today, size: 16, color: selectedDate != null ? kPrimaryColor : kTextSecondary),
+                        Icon(Icons.calendar_today, size: 16, color: selectedDate != null ? Theme.of(context).primaryColor : Theme.of(context).textTheme.bodyMedium?.color),
                         const SizedBox(width: 8),
                         Text(
                           selectedDate == null ? "Date" : DateFormat("MMM dd").format(selectedDate!),
                           style: TextStyle(
                             fontSize: 13,
-                            color: selectedDate != null ? kPrimaryColor : kTextSecondary,
+                            color: selectedDate != null ? Theme.of(context).primaryColor : Theme.of(context).textTheme.bodyMedium?.color,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -308,7 +305,7 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
       ),
@@ -326,8 +323,8 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
               ),
               child: Column(
                 children: [
-                  Text(DateFormat('MMM').format(timestamp).toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kTextSecondary)),
-                  Text(DateFormat('dd').format(timestamp), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary)),
+                  Text(DateFormat('MMM').format(timestamp).toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyMedium?.color)),
+                  Text(DateFormat('dd').format(timestamp), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
                 ],
               ),
             ),
@@ -338,7 +335,7 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(farmerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kTextPrimary)),
+                  Text(farmerName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).textTheme.bodyLarge?.color)),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -380,7 +377,7 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
         children: [
           Icon(Icons.history, size: 50, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          const Text("No collection history found", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kTextSecondary)),
+          Text("No collection history found", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color)),
         ],
       ),
     );
@@ -393,7 +390,7 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
         children: [
           Icon(Icons.search_off, size: 50, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          const Text("No matching records", style: TextStyle(color: kTextSecondary)),
+          Text("No matching records", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
         ],
       ),
     );

@@ -2,22 +2,32 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // Brand Colors
-  static const Color kPrimaryGreen = Color(0xFF1B5E20); // Deep Forest Green
-  static const Color kPrimaryLight = Color(0xFFE8F5E9); // Light Green Background
-  static const Color kSecondaryGreen = Color(0xFF4CAF50); // Vibrant Green
-  static const Color kPrimaryBlue = Color(0xFF1565C0); // Rich Blue
-  static const Color kAccentBlue = Color(0xFF64B5F6); // Lighter Blue
-  static const Color kAccentGold = Color(0xFFFFC107); // Gold for currency/warnings
+  static const Color kPrimaryGreen = Color(0xFF047857); // Premium Emerald
+  static const Color kPrimaryLight = Color(0xFFECFDF5); 
+  static const Color kSecondaryGreen = Color(0xFF10B981); 
+  static const Color kPrimaryBlue = Color(0xFF0F172A); 
+  static const Color kAccentBlue = Color(0xFF3B82F6); 
+  static const Color kAccentGold = Color(0xFFD97706); 
   
-  // Backgrounds
-  static const Color kBackground = Color(0xFFF4F7F9);   // Very light blue-grey for modern feel
-  static const Color kCardColor = Colors.white;
-  static const Color kSurfaceColor = Color(0xFFFFFFFF);
+  // Light Theme Colors (Restored for compat, aliases to Light)
+  static const Color kBackground = kBackgroundLight;
+  static const Color kCardColor = kSurfaceLight; // Defaults to Light Surface
+  static const Color kSurfaceColor = kSurfaceLight;
   
-  // Text
-  static const Color kTextPrimary = Color(0xFF1F2937); // Dark Blue-Grey
-  static const Color kTextSecondary = Color(0xFF6B7280); // Medium Grey
-  static const Color kTextLight = Color(0xFF9CA3AF); // Light Grey
+  static const Color kBackgroundLight = Color(0xFFF4F7F9);
+  static const Color kSurfaceLight = Color(0xFFFFFFFF);
+  static const Color kTextPrimaryLight = Color(0xFF1F2937);
+  static const Color kTextSecondaryLight = Color(0xFF6B7280);
+
+  // Compat Text Colors
+  static const Color kTextPrimary = kTextPrimaryLight;
+  static const Color kTextSecondary = kTextSecondaryLight;
+
+  // Dark Theme Colors
+  static const Color kBackgroundDark = Color(0xFF111827); // Dark Blue-Grey
+  static const Color kSurfaceDark = Color(0xFF1F2937);    // Lighter Dark Blue-Grey
+  static const Color kTextPrimaryDark = Color(0xFFF9FAFB); // Off-White
+  static const Color kTextSecondaryDark = Color(0xFFD1D5DB); // Light Grey
 
   // Status
   static const Color kSuccess = Color(0xFF10B981);
@@ -31,21 +41,14 @@ class AppTheme {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
-  static const LinearGradient cardGradient = LinearGradient(
-    colors: [Colors.white, Color(0xFFFAFAFA)],
+
+  static const LinearGradient darkCardGradient = LinearGradient(
+    colors: [Color(0xFF1F2937), Color(0xFF111827)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
-  // Text Styles
-  static const TextStyle displayLarge = TextStyle(
-    fontSize: 28,
-    fontWeight: FontWeight.bold,
-    color: kTextPrimary,
-    letterSpacing: -0.5,
-  );
-  
+  // --- Compat Text Styles ---
   static const TextStyle displayMedium = TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.bold,
@@ -65,41 +68,47 @@ class AppTheme {
     color: kTextPrimary,
   );
 
-  static const TextStyle bodyLarge = TextStyle(
-    fontSize: 16,
-    color: kTextPrimary,
-    height: 1.5,
-  );
-
   static const TextStyle bodyMedium = TextStyle(
     fontSize: 14,
     color: kTextSecondary,
     height: 1.5,
-  );
-  
-  static const TextStyle labelLarge = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.bold,
-    color: kTextPrimary,
+    inherit: true,
   );
 
-  // Global Theme Data
+  // Helper for consistent TextStyles
+  static TextStyle _style({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+    double? height,
+  }) {
+    return TextStyle(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+      height: height,
+      inherit: true,
+    );
+  }
+
+  // --- LIGHT THEME ---
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       primaryColor: kPrimaryGreen,
-      scaffoldBackgroundColor: kBackground,
+      scaffoldBackgroundColor: kBackgroundLight,
       colorScheme: ColorScheme.fromSeed(
         seedColor: kPrimaryGreen,
         primary: kPrimaryGreen,
         secondary: kSecondaryGreen,
-        surface: kSurfaceColor,
-        background: kBackground,
+        surface: kSurfaceLight,
+        // background deprecated, mapped to surface/scaffoldBackground
         error: kError,
         brightness: Brightness.light,
       ),
       
-      // AppBar Theme
       appBarTheme: const AppBarTheme(
         backgroundColor: kPrimaryGreen,
         elevation: 0,
@@ -114,17 +123,13 @@ class AppTheme {
         ),
       ),
       
-      // Card Theme
       cardTheme: CardThemeData(
-        color: kCardColor,
+        color: kSurfaceLight,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: const EdgeInsets.only(bottom: 12),
-        // We will add shadows manually where needed for specific glowing effects, 
-        // but default card should be clean.
       ),
       
-      // Elevated Button Theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: kPrimaryGreen,
@@ -136,7 +141,6 @@ class AppTheme {
         ),
       ),
       
-      // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
@@ -153,28 +157,107 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: kPrimaryGreen, width: 2),
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: kError),
-        ),
-        labelStyle: const TextStyle(color: kTextSecondary),
+        labelStyle: const TextStyle(color: kTextSecondaryLight),
         hintStyle: TextStyle(color: Colors.grey.shade400),
       ),
-      
-      // Tab Bar Theme
-      tabBarTheme: const TabBarThemeData(
-        labelColor: kPrimaryGreen,
-        unselectedLabelColor: kTextSecondary,
-        indicator: UnderlineTabIndicator(
-          borderSide: BorderSide(color: kPrimaryGreen, width: 3),
-        ),
-      ),
-      
-      // Icon Theme
+
       iconTheme: const IconThemeData(
-        color: kTextPrimary,
-        size: 24,
+          color: kTextPrimaryLight,
+          size: 24,
+      ),
+
+      textTheme: TextTheme(
+        displayLarge: _style(fontSize: 28, fontWeight: FontWeight.bold, color: kTextPrimaryLight),
+        titleLarge: _style(fontSize: 20, fontWeight: FontWeight.w600, color: kTextPrimaryLight),
+        bodyLarge: _style(fontSize: 16, color: kTextPrimaryLight),
+        bodyMedium: _style(fontSize: 14, color: kTextSecondaryLight),
       ),
     );
   }
+
+  // --- DARK THEME ---
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      primaryColor: kPrimaryGreen,
+      scaffoldBackgroundColor: kBackgroundDark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: kPrimaryGreen,
+        primary: kPrimaryGreen,
+        secondary: kSecondaryGreen,
+        surface: kSurfaceDark,
+        // background deprecated
+        error: kError,
+        brightness: Brightness.dark,
+        onSurface: kTextPrimaryDark,
+      ),
+      
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF0F172A), // Darker Header
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: IconThemeData(color: Colors.white),
+        actionsIconTheme: IconThemeData(color: Colors.white),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      
+      cardTheme: CardThemeData(
+        color: kSurfaceDark,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        margin: const EdgeInsets.only(bottom: 12),
+      ),
+      
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: kPrimaryGreen,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: kSurfaceDark,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade800),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade800),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimaryGreen, width: 2),
+        ),
+        labelStyle: const TextStyle(color: kTextSecondaryDark),
+        hintStyle: TextStyle(color: Colors.grey.shade600),
+      ),
+
+      iconTheme: const IconThemeData(
+        color: kTextPrimaryDark,
+        size: 24,
+      ),
+
+      textTheme: TextTheme(
+        displayLarge: _style(fontSize: 28, fontWeight: FontWeight.bold, color: kTextPrimaryDark),
+        titleLarge: _style(fontSize: 20, fontWeight: FontWeight.w600, color: kTextPrimaryDark),
+        bodyLarge: _style(fontSize: 16, color: kTextPrimaryDark),
+        bodyMedium: _style(fontSize: 14, color: kTextSecondaryDark),
+      ),
+    );
+  }
+  
+  // Helper to get correct Card color based on theme
+  static Color getCardColor(bool isDark) => isDark ? kSurfaceDark : kSurfaceLight;
+  static Color getTextColor(bool isDark) => isDark ? kTextPrimaryDark : kTextPrimaryLight;
+  static Color getSecondaryTextColor(bool isDark) => isDark ? kTextSecondaryDark : kTextSecondaryLight;
 }

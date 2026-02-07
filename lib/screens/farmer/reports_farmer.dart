@@ -361,7 +361,7 @@ class _FarmerReportsScreenState extends State<FarmerReportsScreen> with SingleTi
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.kBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Analytics"),
         actions: [
@@ -393,7 +393,7 @@ class _FarmerReportsScreenState extends State<FarmerReportsScreen> with SingleTi
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.kPrimaryGreen))
+          ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
           : Column(
               children: [
                 // Date Indicator
@@ -512,7 +512,7 @@ class _FarmerReportsScreenState extends State<FarmerReportsScreen> with SingleTi
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.only(right: 16, left: 0, top: 24, bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),

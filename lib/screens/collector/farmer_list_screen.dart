@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:podago/utils/app_theme.dart'; // NEW
 
 class FarmerListScreen extends StatelessWidget {
   const FarmerListScreen({super.key});
@@ -16,17 +17,15 @@ class FarmerListScreen extends StatelessWidget {
           "My Farmers",
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Colors.white,
           ),
         ),
-        backgroundColor: Colors.green[700],
+        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [
           // Header Stats
-          _buildHeaderStats(collectorId!),
+          _buildHeaderStats(context, collectorId!),
           
           // Farmers List
           Expanded(
@@ -37,7 +36,7 @@ class FarmerListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderStats(String collectorId) {
+  Widget _buildHeaderStats(BuildContext context, String collectorId) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
@@ -51,7 +50,7 @@ class FarmerListScreen extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.green[50],
+            color: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(20),
               bottomRight: Radius.circular(20),
@@ -63,12 +62,14 @@ class FarmerListScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildStatCard(
+                    context,
                     icon: Icons.people_alt_rounded,
                     value: farmerCount.toString(),
                     label: "Total Farmers",
-                    color: Colors.green[700]!,
+                    color: Theme.of(context).primaryColor,
                   ),
                   _buildStatCard(
+                    context,
                     icon: Icons.today_rounded,
                     value: DateFormat('MMM dd').format(DateTime.now()),
                     label: "Today",
@@ -81,14 +82,14 @@ class FarmerListScreen extends StatelessWidget {
                 "Manage Your Farmers",
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Colors.green[800],
+                      color: Theme.of(context).primaryColor,
                     ),
               ),
               const SizedBox(height: 4),
               Text(
                 "Tap + to log milk collection for any farmer",
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                 textAlign: TextAlign.center,
               ),
@@ -99,7 +100,8 @@ class FarmerListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard({
+  Widget _buildStatCard(
+    BuildContext context, {
     required IconData icon,
     required String value,
     required String label,
@@ -129,7 +131,7 @@ class FarmerListScreen extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodySmall?.color,
           ),
         ),
       ],
@@ -146,7 +148,7 @@ class FarmerListScreen extends StatelessWidget {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -154,7 +156,7 @@ class FarmerListScreen extends StatelessWidget {
                 SizedBox(height: 16),
                 Text(
                   "Loading farmers...",
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
                 ),
               ],
             ),
@@ -175,13 +177,13 @@ class FarmerListScreen extends StatelessWidget {
                 Text(
                   "Error loading farmers",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.grey[600],
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   "Please check your connection",
-                  style: TextStyle(color: Colors.grey[500]),
+                  style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
                 ),
               ],
             ),
@@ -189,7 +191,7 @@ class FarmerListScreen extends StatelessWidget {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyState();
+          return _buildEmptyState(context);
         }
 
         final farmers = snapshot.data!.docs;
@@ -203,7 +205,7 @@ class FarmerListScreen extends StatelessWidget {
                 "Registered Farmers (${farmers.length})",
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[700],
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                     ),
               ),
               const SizedBox(height: 16),
@@ -231,6 +233,7 @@ class FarmerListScreen extends StatelessWidget {
       elevation: 2,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Theme.of(context).cardColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -240,12 +243,12 @@ class FarmerListScreen extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: Colors.green[50],
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(25),
               ),
               child: Icon(
                 Icons.person_rounded,
-                color: Colors.green[700],
+                color: Theme.of(context).primaryColor,
                 size: 24,
               ),
             ),
@@ -270,13 +273,13 @@ class FarmerListScreen extends StatelessWidget {
                         Icon(
                           Icons.phone_rounded,
                           size: 14,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           data["phone"],
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: Theme.of(context).textTheme.bodySmall?.color,
                             fontSize: 14,
                           ),
                         ),
@@ -288,13 +291,13 @@ class FarmerListScreen extends StatelessWidget {
                         Icon(
                           Icons.location_on_rounded,
                           size: 14,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           data["location"],
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: Theme.of(context).textTheme.bodySmall?.color,
                             fontSize: 12,
                           ),
                         ),
@@ -309,13 +312,13 @@ class FarmerListScreen extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.green[50],
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: IconButton(
                 icon: Icon(
                   Icons.add_rounded,
-                  color: Colors.green[700],
+                  color: Theme.of(context).primaryColor,
                   size: 20,
                 ),
                 onPressed: () {
@@ -344,7 +347,7 @@ class FarmerListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -352,12 +355,12 @@ class FarmerListScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                shape: BoxShape.circle,
-              ),
+               width: 120,
+               height: 120,
+               decoration: BoxDecoration(
+                 color: Theme.of(context).cardColor,
+                 shape: BoxShape.circle,
+               ),
               child: Icon(
                 Icons.people_outline_rounded,
                 size: 48,
@@ -369,7 +372,7 @@ class FarmerListScreen extends StatelessWidget {
               "No Farmers Registered",
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
             ),
             const SizedBox(height: 12),
@@ -377,7 +380,7 @@ class FarmerListScreen extends StatelessWidget {
               "Farmers you register will appear here.\nYou can start by adding new farmers to your collection route.",
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.grey[500],
+                color: Theme.of(context).textTheme.bodySmall?.color,
                 fontSize: 14,
               ),
             ),
@@ -390,7 +393,7 @@ class FarmerListScreen extends StatelessWidget {
               icon: const Icon(Icons.person_add_alt_rounded),
               label: const Text("Register First Farmer"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[700],
+                backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),

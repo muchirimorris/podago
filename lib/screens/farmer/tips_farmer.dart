@@ -76,7 +76,7 @@ class _FarmerTipsScreenState extends State<FarmerTipsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.kBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Knowledge Hub"),
         actions: [
@@ -102,7 +102,7 @@ class _FarmerTipsScreenState extends State<FarmerTipsScreen> {
                           _buildHeaderCard(),
                           const SizedBox(height: 24),
                           
-                          const Text("Latest Insights", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.kTextPrimary)),
+                          Text("Latest Insights", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
                           const SizedBox(height: 12),
 
                           // --- Tips List ---
@@ -172,7 +172,7 @@ class _FarmerTipsScreenState extends State<FarmerTipsScreen> {
   Widget _buildTipCard(Map<String, dynamic> tip, int index) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
       ),
@@ -201,16 +201,16 @@ class _FarmerTipsScreenState extends State<FarmerTipsScreen> {
                     if (tip['createdAt'] != null)
                       Text(
                         _formatDate(tip['createdAt'] as Timestamp),
-                        style: const TextStyle(color: AppTheme.kTextSecondary, fontSize: 10),
+                        style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 10),
                       ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
                   tip['content'],
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: AppTheme.kTextPrimary,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                     height: 1.5,
                     fontWeight: FontWeight.w500,
                   ),
@@ -243,8 +243,8 @@ class _FarmerTipsScreenState extends State<FarmerTipsScreen> {
         children: [
           const Icon(Icons.wifi_off, size: 60, color: Colors.grey),
           const SizedBox(height: 16),
-          const Text("Could not load tips", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.kTextPrimary)),
-          const Text("Check your connection", style: TextStyle(color: AppTheme.kTextSecondary)),
+          Text("Could not load tips", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+          Text("Check your connection", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
           const SizedBox(height: 24),
           TextButton(
             onPressed: _fetchTips,
@@ -263,9 +263,9 @@ class _FarmerTipsScreenState extends State<FarmerTipsScreen> {
         children: [
           Icon(Icons.library_books_outlined, size: 60, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          const Text("No tips available yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.kTextSecondary)),
+          Text("No tips available yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyMedium?.color)),
           const SizedBox(height: 8),
-          const Text("Check back later for updates", style: TextStyle(color: AppTheme.kTextSecondary, fontSize: 12)),
+          Text("Check back later for updates", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 12)),
           const SizedBox(height: 24),
           TextButton(
             onPressed: _fetchTips,

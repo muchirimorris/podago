@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart'; // NEW
+import 'package:podago/providers/theme_provider.dart'; // NEW
 
 // ✅ Correct package imports
 import 'package:podago/widgets/bottom_nav_bar.dart';
@@ -54,7 +56,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
 
       if (mounted) {
         setState(() {
-          _farmerName = userDoc.data()?["name"] ?? "Farmer";
+          final fullName = userDoc.data()?["name"] ?? "Farmer";
+          _farmerName = fullName.split(' ')[0];
           _pricePerLiter = price;
           _isLoadingData = false;
         });
@@ -94,7 +97,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isPrimary ? color : AppTheme.kCardColor,
+        color: isPrimary ? color : Theme.of(context).cardColor,
         gradient: isPrimary ? AppTheme.primaryGradient : null,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
@@ -152,7 +155,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     Color trendColor = trend == 'growing' ? Colors.green : (trend == 'declining' ? Colors.red : Colors.grey);
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
       ),
@@ -193,7 +196,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
       ),
@@ -309,7 +312,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.kCardColor,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: statusColor.withOpacity(0.3)),
             ),
@@ -339,10 +342,20 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.kBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Podago Cooperative"),
         actions: [
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return IconButton(
+                icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                onPressed: () {
+                  themeProvider.toggleTheme(!themeProvider.isDarkMode);
+                },
+              );
+            },
+          ),
           IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
@@ -368,7 +381,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             final data = doc.data() as Map<String, dynamic>;
             final date = (data["date"] as Timestamp).toDate();
             final qty = (data["quantity"] ?? 0).toDouble();
-            final status = data["status"] ?? "pending";
+            final status = data["status"];
 
             if (DateFormat("yyyy-MM-dd").format(date) == DateFormat("yyyy-MM-dd").format(today)) {
               todayTotal += qty;
@@ -388,18 +401,18 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
           // 🔹 Nested Stream for Deductions to calculate Net Pay
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
-                .collection("payments")
+                .collection("feed_requests")
                 .where("farmerId", isEqualTo: widget.farmerId)
-                .where("type", isEqualTo: "feed_deduction")
+                .where("status", isEqualTo: "delivered")
                 .snapshots(),
             builder: (context, deductionSnapshot) {
                double deductionTotal = 0;
                if (deductionSnapshot.hasData) {
                  for (var doc in deductionSnapshot.data!.docs) {
                    final data = doc.data() as Map<String, dynamic>;
-                   if (data['status'] != 'processed') {
-                     deductionTotal += (data['amount'] ?? 0).toDouble().abs();
-                   }
+                   // Only count 'delivered' as pending deduction. 
+                   // 'deducted' or 'paid' are cleared.
+                   deductionTotal += (data['cost'] ?? 0).toDouble().abs();
                  }
                }
                
@@ -411,8 +424,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 1. Welcome
-                    Text("Welcome back, $_farmerName", style: AppTheme.displayMedium),
-                    Text("Current Price: KES $_pricePerLiter/L", style: AppTheme.bodyMedium),
+                    Text("Welcome back, $_farmerName", style: Theme.of(context).textTheme.displayMedium),
+                    Text("Current Price: KES $_pricePerLiter/L", style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 20),
 
                     // 2. Stats Grid
@@ -503,7 +516,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                     // _buildFeedRequestCard(), // Removed in favor of Quick Action, or keep as "Recent Request Status"
 
                     const SizedBox(height: 30),
-                    const Text("AI Forecast", style: AppTheme.titleLarge),
+                    Text("AI Forecast", style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 10),
 
                     FutureBuilder<Map<String, dynamic>>(
@@ -535,7 +548,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                     ),
 
                     const SizedBox(height: 30),
-                    const Text("Recent Transactions", style: AppTheme.titleLarge),
+                    Text("Recent Transactions", style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 10),
                     
                     if (logs.isEmpty)

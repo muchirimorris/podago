@@ -192,9 +192,6 @@ class MilkPredictor {
     );
   }
 
-  // === UPDATED LOGIC METHODS ===
-
-  /// UPDATED: Safer trend calculation using normalized sublists
   String _calculateShortTermTrend(List<MilkDataPoint> data) {
     if (data.length < 7) return 'stable';
     

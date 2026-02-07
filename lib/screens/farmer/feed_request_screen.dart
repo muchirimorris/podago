@@ -120,6 +120,10 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
 
     setState(() { _isSubmitting = true; });
 
+    // Calculate cost
+    final pricePerUnit = (selectedFeed['pricePerUnit'] ?? 0).toDouble();
+    final totalCost = pricePerUnit * _selectedQuantity;
+
     try {
       await FirebaseFirestore.instance.collection('feed_requests').add({
         'farmerId': widget.farmerId,
@@ -128,13 +132,13 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
         'quantity': _selectedQuantity,
         'notes': '',
         'status': 'pending',
-        'cost': 0,
+        'cost': totalCost, // ✅ Saved calculated cost
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
       if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Feed request submitted successfully!'), backgroundColor: AppTheme.kPrimaryGreen));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Feed request submitted successfully!'), backgroundColor: Theme.of(context).primaryColor));
         setState(() { _selectedFeedType = 'Dairy Meal'; _selectedQuantity = 25.0; });
       }
     } catch (e) {
@@ -158,7 +162,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
           children: [
             // --- Inventory Status ---
             if (_availableFeeds.isNotEmpty) ...[
-              const Text("Inventory Status", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.kTextPrimary)),
+              Text("Inventory Status", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
               const SizedBox(height: 12),
               SizedBox(
                 height: 90,
@@ -176,7 +180,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
             // --- Order Form ---
             Container(
               decoration: BoxDecoration(
-                color: AppTheme.kCardColor,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))],
               ),
@@ -186,22 +190,22 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
                 children: [
                   Row(
                     children: [
-                      Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppTheme.kPrimaryGreen.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.add_shopping_cart, color: AppTheme.kPrimaryGreen)),
+                      Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.add_shopping_cart, color: Theme.of(context).primaryColor)),
                       const SizedBox(width: 12),
-                      const Text("New Request", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.kTextPrimary)),
+                      Text("New Request", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
                     ],
                   ),
                   const SizedBox(height: 24),
                   
                   // Feed Type Dropdown
-                  const Text("Select Feed", style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.kTextSecondary, fontSize: 13)),
+                  Text("Select Feed", style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 13)),
                   const SizedBox(height: 8),
                   _buildDropdown(),
 
                   const SizedBox(height: 20),
 
                   // Quantity Grid
-                  const Text("Quantity (KG)", style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.kTextSecondary, fontSize: 13)),
+                  Text("Quantity (KG)", style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 13)),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 10,
@@ -225,7 +229,44 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
                     ),
                   ],
 
-                  const SizedBox(height: 24),
+                  // Calculate Cost
+                  Builder(
+                    builder: (context) {
+                      final selectedFeed = _availableFeeds.firstWhere((feed) => feed['type'] == _selectedFeedType, orElse: () => {},);
+                      final price = (selectedFeed.isNotEmpty ? selectedFeed['pricePerUnit'] : 0).toDouble();
+                      final totalCost = price * _selectedQuantity;
+
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Estimated Cost", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 13)),
+                                SizedBox(height: 4),
+                                Text("Will be deducted from milk pay", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 10, fontStyle: FontStyle.italic)),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text("KES ${NumberFormat('#,###').format(totalCost)}", style: TextStyle(color: Colors.blue.shade800, fontSize: 20, fontWeight: FontWeight.bold)),
+                                Text("@ KES ${price.toInt()}/kg", style: TextStyle(color: Colors.blue.shade600, fontSize: 11)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  ),
 
                   // Submit Button
                   SizedBox(
@@ -251,7 +292,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
             const SizedBox(height: 30),
 
             // --- History Section ---
-            const Text("Request History", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.kTextPrimary)),
+            Text("Request History", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
             const SizedBox(height: 12),
             _buildHistorySection(),
             
@@ -264,7 +305,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
 
   Scaffold _buildScaffold(Widget body) {
     return Scaffold(
-      backgroundColor: AppTheme.kBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Request Feed"),
       ),
@@ -282,7 +323,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
       width: 140,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: isLow ? Border.all(color: Colors.orange.withOpacity(0.3)) : null,
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6)],
@@ -293,7 +334,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
         children: [
           Text(
             feed['type'].toString().split('(')[0], // Shorten name
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.kTextPrimary),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).textTheme.bodyLarge?.color),
             maxLines: 1, overflow: TextOverflow.ellipsis
           ),
           const SizedBox(height: 8),
@@ -305,7 +346,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
             ),
             child: Text(
               "${status['available']} kg",
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isLow ? Colors.orange.shade800 : AppTheme.kPrimaryGreen),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isLow ? Colors.orange.shade800 : Theme.of(context).primaryColor),
             ),
           )
         ],
@@ -317,7 +358,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppTheme.kBackground,
+        color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade300),
       ),
@@ -325,11 +366,11 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
         child: DropdownButton<String>(
           value: _selectedFeedType,
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.kTextSecondary),
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: Theme.of(context).textTheme.bodyMedium?.color),
           items: _feedTypes.map((type) {
             return DropdownMenuItem(
               value: type,
-              child: Text(type, style: const TextStyle(fontSize: 14, color: AppTheme.kTextPrimary)),
+              child: Text(type, style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
             );
           }).toList(),
           onChanged: (value) => setState(() => _selectedFeedType = value!),
@@ -347,9 +388,9 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.kPrimaryGreen : (isAvailable ? Colors.white : Colors.grey.shade100),
+          color: isSelected ? Theme.of(context).primaryColor : (isAvailable ? Theme.of(context).cardColor : Colors.grey.shade100),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? AppTheme.kPrimaryGreen : (isAvailable ? Colors.grey.shade300 : Colors.transparent)),
+          border: Border.all(color: isSelected ? Theme.of(context).primaryColor : (isAvailable ? Colors.grey.shade300 : Colors.transparent)),
           boxShadow: isAvailable && !isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4)] : null,
         ),
         child: Text(
@@ -357,7 +398,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : (isAvailable ? AppTheme.kTextPrimary : Colors.grey.shade400),
+            color: isSelected ? Colors.white : (isAvailable ? Theme.of(context).textTheme.bodyLarge?.color : Colors.grey.shade400),
           ),
         ),
       ),
@@ -399,7 +440,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4)],
       ),
@@ -415,9 +456,9 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(feedType, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.kTextPrimary)),
+                Text(feedType, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
                 const SizedBox(height: 4),
-                Text("${quantity}kg • ${DateFormat('MMM dd').format(date)}", style: const TextStyle(fontSize: 12, color: AppTheme.kTextSecondary)),
+                Text("${quantity}kg • ${DateFormat('MMM dd').format(date)}", style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color)),
               ],
             ),
           ),
@@ -434,7 +475,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
   // --- States ---
 
   Widget _buildLoadingState() {
-    return const Center(child: CircularProgressIndicator(color: AppTheme.kPrimaryGreen));
+    return Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor));
   }
 
   Widget _buildErrorState() {
@@ -444,7 +485,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
         children: [
           const Icon(Icons.error_outline, size: 48, color: Colors.grey),
           const SizedBox(height: 16),
-          Text(_errorMessage, style: const TextStyle(color: AppTheme.kTextSecondary), textAlign: TextAlign.center),
+          Text(_errorMessage, style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color), textAlign: TextAlign.center),
           TextButton(onPressed: _initializeData, child: const Text("Retry"))
         ],
       ),
@@ -459,7 +500,7 @@ class _FeedRequestScreenState extends State<FeedRequestScreen> {
           children: [
             Icon(Icons.history, size: 40, color: Colors.grey.shade300),
             const SizedBox(height: 8),
-            const Text("No requests yet", style: TextStyle(color: AppTheme.kTextSecondary, fontSize: 13)),
+            Text("No requests yet", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 13)),
           ],
         ),
       ),

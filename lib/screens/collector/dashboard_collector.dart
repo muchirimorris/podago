@@ -11,6 +11,9 @@ import 'package:podago/services/simple_storage_service.dart';
 import 'package:podago/screens/auth/role_selection_screen.dart';
 import 'package:podago/services/offline_storage_service.dart';
 import 'package:podago/services/connectivity_service.dart';
+import 'package:provider/provider.dart'; // NEW
+import 'package:podago/providers/theme_provider.dart'; // NEW
+import 'package:podago/utils/app_theme.dart'; // NEW
 
 class CollectorDashboard extends StatefulWidget {
   const CollectorDashboard({super.key});
@@ -21,12 +24,7 @@ class CollectorDashboard extends StatefulWidget {
 
 class _CollectorDashboardState extends State<CollectorDashboard> {
   // --- Professional Theme Colors ---
-  static const Color kPrimaryColor = Color(0xFF00695C); // Teal 800
-  static const Color kAccentColor = Color(0xFF009688);  // Teal 500
-  static const Color kBackgroundColor = Color(0xFFF5F7FA);
-  static const Color kCardColor = Colors.white;
-  static const Color kTextPrimary = Color(0xFF263238);
-  static const Color kTextSecondary = Color(0xFF78909C);
+  // Using AppTheme constants instead of local static colors
   
   // --- State Variables (Preserved) ---
   String? selectedFarmerId;
@@ -286,7 +284,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: kBackgroundColor,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: _buildAppBar(),
         body: SafeArea(
           bottom: false,
@@ -297,9 +295,11 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
               Expanded(
                 child: Column(
                   children: [
-                    SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: _buildCollectionForm(),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: _buildCollectionForm(),
+                      ),
                     ),
                     
                     const Divider(height: 1, color: Color(0xFFE0E0E0)),
@@ -324,12 +324,25 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
     return AppBar(
       title: const Text(
         "Collector Dashboard",
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
       ),
-      backgroundColor: kPrimaryColor,
+      backgroundColor: Colors.transparent, // Use transparent to show gradient if needed, or theme primary
+      flexibleSpace: Container(
+        decoration: BoxDecoration(color: Theme.of(context).cardColor),
+      ),
       elevation: 0,
       centerTitle: false,
       actions: [
+        Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return IconButton(
+                icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode, color: Colors.white),
+                onPressed: () {
+                  themeProvider.toggleTheme(!themeProvider.isDarkMode);
+                },
+              );
+            },
+          ),
         IconButton(
           icon: const Icon(Icons.person_add_alt_1, color: Colors.white),
           tooltip: "Register Farmer",
@@ -378,7 +391,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                     const SizedBox(width: 4),
                     Text(
                       "$_pendingSyncCount Pending",
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 11),
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 11, inherit: false, textBaseline: TextBaseline.alphabetic),
                     ),
                   ],
                 ),
@@ -392,7 +405,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
   Widget _buildCollectionForm() {
     return Card(
       elevation: 0, // Flat design with border
-      color: kCardColor,
+      color: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: Colors.grey.shade300),
@@ -405,7 +418,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("New Collection", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kTextPrimary)),
+              Text("New Collection", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Theme.of(context).textTheme.bodyLarge?.color, inherit: false, textBaseline: TextBaseline.alphabetic)),
               const SizedBox(height: 20),
               
               _buildFarmerDropdown(),
@@ -448,7 +461,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                     child: OutlinedButton(
                       onPressed: _isSubmitting ? null : _clearForm,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: kTextSecondary,
+                        foregroundColor: Theme.of(context).textTheme.bodyMedium?.color,
                         side: BorderSide(color: Colors.grey.shade300),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -462,7 +475,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                     child: ElevatedButton.icon(
                       onPressed: _isSubmitting ? null : _logMilk,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _isOnline ? kPrimaryColor : Colors.orange,
+                        backgroundColor: _isOnline ? Theme.of(context).primaryColor : Colors.orange,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -496,25 +509,25 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kTextSecondary)),
+        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color, inherit: false, textBaseline: TextBaseline.alphabetic)),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
           maxLines: maxLines,
           validator: validator,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kTextPrimary),
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color, inherit: false, textBaseline: TextBaseline.alphabetic),
           decoration: InputDecoration(
             hintText: hint,
             suffixText: suffix,
-            prefixIcon: Icon(icon, size: 20, color: kTextSecondary),
+            prefixIcon: Icon(icon, size: 20, color: Theme.of(context).textTheme.bodyMedium?.color),
             filled: true,
-            fillColor: kBackgroundColor,
+            fillColor: Theme.of(context).scaffoldBackgroundColor,
             // High padding ensures text is vertically centered and easy to tap
             contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2)),
             errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1)),
           ),
         ),
@@ -526,25 +539,25 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Select Farmer", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kTextSecondary)),
+        Text("Select Farmer", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color, inherit: false, textBaseline: TextBaseline.alphabetic)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: kBackgroundColor,
+            color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: selectedFarmerId,
-              hint: const Text("Choose from list", style: TextStyle(fontSize: 14, color: Colors.grey)),
+              hint: const Text("Choose from list", style: TextStyle(fontSize: 14, color: Colors.grey, inherit: false, textBaseline: TextBaseline.alphabetic)),
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down, color: kTextSecondary),
+              icon: Icon(Icons.keyboard_arrow_down, color: Theme.of(context).textTheme.bodyMedium?.color),
               items: _farmersList.map((farmer) {
                 return DropdownMenuItem<String>(
                   value: farmer['id'],
-                  child: Text(farmer['name'], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kTextPrimary)),
+                  child: Text(farmer['name'], style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodyLarge?.color, inherit: false, textBaseline: TextBaseline.alphabetic)),
                 );
               }).toList(),
               onChanged: (String? newValue) {
@@ -571,11 +584,11 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Today's Records", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextSecondary)),
+              Text("Today's Records", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyMedium?.color, inherit: false, textBaseline: TextBaseline.alphabetic)),
               if (_pendingSyncCount > 0 && _isOnline)
                 TextButton(
                   onPressed: _syncPendingLogs,
-                  child: const Text("Sync All Now", style: TextStyle(fontSize: 12)),
+                  child: const Text("Sync All Now", style: TextStyle(fontSize: 12, inherit: false, textBaseline: TextBaseline.alphabetic)),
                 ),
             ],
           ),
@@ -617,7 +630,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
     
     return Container(
       decoration: BoxDecoration(
-        color: kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))],
       ),
@@ -635,26 +648,26 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
             size: 20,
           ),
         ),
-        title: Text(farmerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kTextPrimary)),
+        title: Text(farmerName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color, inherit: false, textBaseline: TextBaseline.alphabetic)),
         subtitle: Row(
           children: [
             if (wasOffline) ...[
               const Icon(Icons.cloud_off, size: 12, color: Colors.orange),
               const SizedBox(width: 4),
             ],
-            Text(DateFormat('hh:mm a').format(timestamp), style: const TextStyle(fontSize: 12, color: kTextSecondary)),
+            Text(DateFormat('hh:mm a').format(timestamp), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color, inherit: false, textBaseline: TextBaseline.alphabetic)),
           ],
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: kBackgroundColor,
+        color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: Text(
             "${quantity.toStringAsFixed(1)} L",
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kTextPrimary),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color, inherit: false, textBaseline: TextBaseline.alphabetic),
           ),
         ),
       ),
@@ -668,7 +681,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
         children: [
           Icon(Icons.assignment_outlined, size: 48, color: Colors.grey.shade300),
           const SizedBox(height: 12),
-          Text("No records today", style: TextStyle(color: kTextSecondary, fontWeight: FontWeight.w500)),
+          Text("No records today", style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontWeight: FontWeight.w500, inherit: false, textBaseline: TextBaseline.alphabetic)),
         ],
       ),
     );
