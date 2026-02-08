@@ -12,6 +12,8 @@ import 'package:podago/widgets/bottom_nav_bar.dart';
 import 'package:podago/models/Milk_predictor.dart';
 import 'package:podago/services/simple_storage_service.dart';
 import 'package:podago/services/pricing_service.dart'; // NEW
+import 'package:podago/services/notification_service.dart'; // NEW
+import 'package:podago/screens/shared/notification_screen.dart'; // NEW
 import 'package:podago/utils/app_theme.dart'; // NEW
 import 'package:podago/screens/auth/role_selection_screen.dart';
 import 'package:podago/screens/farmer/feed_request_screen.dart';
@@ -353,6 +355,37 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                 onPressed: () {
                   themeProvider.toggleTheme(!themeProvider.isDarkMode);
                 },
+              );
+            },
+          ),
+          // Notification Bell
+          StreamBuilder<int>(
+            stream: NotificationService().getUnreadCount(),
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          count > 9 ? '9+' : count.toString(),
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
               );
             },
           ),

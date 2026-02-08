@@ -14,6 +14,8 @@ import 'package:podago/services/connectivity_service.dart';
 import 'package:provider/provider.dart'; // NEW
 import 'package:podago/providers/theme_provider.dart'; // NEW
 import 'package:podago/utils/app_theme.dart'; // NEW
+import 'package:podago/services/notification_service.dart'; // NEW
+import 'package:podago/screens/shared/notification_screen.dart'; // NEW
 
 class CollectorDashboard extends StatefulWidget {
   const CollectorDashboard({super.key});
@@ -340,6 +342,37 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                 onPressed: () {
                   themeProvider.toggleTheme(!themeProvider.isDarkMode);
                 },
+              );
+            },
+          ),
+          // Notification Bell
+          StreamBuilder<int>(
+            stream: NotificationService().getUnreadCount(),
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          count > 9 ? '9+' : count.toString(),
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
               );
             },
           ),

@@ -71,15 +71,28 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
 
       final feedDeductions = paymentsSnapshot.docs.where((doc) {
         final data = doc.data();
-        return data['type'] == 'feed_deduction'; // Fetch ALL deductions (Pending & Processed)
+        return data['type'] == 'feed_deduction'; // Keep historical log for "Transactions" tab
       }).toList();
+
+      // NEW: Fetch ACTUAL pending deductions (Live Status)
+      final pendingFeedsQuery = FirebaseFirestore.instance
+          .collection('feed_requests')
+          .where('farmerId', isEqualTo: widget.farmerId)
+          .where('status', isEqualTo: 'delivered');
+          
+      final pendingFeedsSnapshot = await pendingFeedsQuery.get();
 
       final milkLogsQuery = FirebaseFirestore.instance.collection('milk_logs').where('farmerId', isEqualTo: widget.farmerId).orderBy('date', descending: true);
       final milkLogsSnapshot = await milkLogsQuery.get();
 
-      return { 'milkPayments': milkPayments, 'feedDeductions': feedDeductions, 'milkLogs': milkLogsSnapshot.docs };
+      return { 
+        'milkPayments': milkPayments, 
+        'feedDeductions': feedDeductions, 
+        'pendingFeeds': pendingFeedsSnapshot.docs, // Pass this new list
+        'milkLogs': milkLogsSnapshot.docs 
+      };
     } catch (error) {
-      return { 'milkPayments': [], 'feedDeductions': [], 'milkLogs': [] };
+      return { 'milkPayments': [], 'feedDeductions': [], 'pendingFeeds': [], 'milkLogs': [] };
     }
   }
 
@@ -87,6 +100,7 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
   Map<String, double> _calculatePaymentTotals(Map<String, dynamic> paymentData) {
     final milkPayments = paymentData['milkPayments'] as List<DocumentSnapshot>;
     final feedDeductions = paymentData['feedDeductions'] as List<DocumentSnapshot>;
+    final pendingFeeds = paymentData['pendingFeeds'] as List<DocumentSnapshot>; // New Source
     final milkLogs = paymentData['milkLogs'] as List<DocumentSnapshot>;
 
     final paidMilkLogs = milkLogs.where((doc) => (doc.data() as Map<String, dynamic>)['status'] == 'paid').toList();
@@ -102,37 +116,34 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
       totalMilkIncome = milkPayments.fold(0.0, (sum, doc) => sum + ((doc.data() as Map<String, dynamic>)['amount'] ?? 0.0));
     }
 
-    // Pending Milk (Using Historical Price)
+    // Pending Milk
     double totalPendingMilk = pendingMilkLogs.fold(0.0, (sum, doc) {
       final data = doc.data() as Map<String, dynamic>;
       final price = (data['pricePerLiter'] ?? _pricePerLiter).toDouble();
       return sum + ((data['quantity'] ?? 0).toDouble() * price);
     });
 
-    // All Time Deductions (For Overview)
+    // All Time Deductions (For Overview - Historical)
     double totalFeedDeductions = feedDeductions.fold(0.0, (sum, doc) {
       final amount = (doc.data() as Map<String, dynamic>)['amount'] ?? 0.0;
       return sum + (amount < 0 ? amount.abs() : amount);
     });
 
-    // Pending Deductions Only (For Net Pay Calculation)
-    final pendingDeductionDocs = feedDeductions.where((doc) => (doc.data() as Map<String, dynamic>)['status'] != 'processed');
-    double totalPendingDeductions = pendingDeductionDocs.fold(0.0, (sum, doc) {
-      final amount = (doc.data() as Map<String, dynamic>)['amount'] ?? 0.0;
-      return sum + (amount < 0 ? amount.abs() : amount);
+    // CORRECTED: Pending Deductions Only (From Live Feed Requests)
+    double totalPendingDeductions = pendingFeeds.fold(0.0, (sum, doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      // For a delivered request, the cost is pending deduction
+      final cost = (data['cost'] ?? 0).toDouble();
+      return sum + (cost < 0 ? cost.abs() : cost);
     });
 
     double deductionsAppliedToPending = 0.0;
     double remainingPendingAfterDeductions = 0.0;
 
-    if (totalPendingDeductions > 0 && totalPendingMilk > 0) {
-      if (totalPendingDeductions <= totalPendingMilk) {
-        deductionsAppliedToPending = totalPendingDeductions;
-        remainingPendingAfterDeductions = totalPendingMilk - totalPendingDeductions;
-      } else {
-        deductionsAppliedToPending = totalPendingMilk;
-        remainingPendingAfterDeductions = 0.0;
-      }
+    if (totalPendingDeductions > 0) {
+       // Logic: Deductions reduce the payout
+       deductionsAppliedToPending = totalPendingDeductions;
+       remainingPendingAfterDeductions = totalPendingMilk - totalPendingDeductions;
     } else {
       deductionsAppliedToPending = 0.0;
       remainingPendingAfterDeductions = totalPendingMilk;
@@ -141,8 +152,8 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
     return {
       'totalMilkIncome': totalMilkIncome,
       'totalPendingMilk': totalPendingMilk,
-      'totalFeedDeductions': totalFeedDeductions, // All Time
-      'totalPendingDeductions': totalPendingDeductions, // Pending Only
+      'totalFeedDeductions': totalFeedDeductions, 
+      'totalPendingDeductions': totalPendingDeductions,
       'remainingPendingAfterDeductions': remainingPendingAfterDeductions,
       'deductionsAppliedToPending': deductionsAppliedToPending,
     };
@@ -181,7 +192,7 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
                   if (paymentSnapshot.connectionState == ConnectionState.waiting) return _buildLoadingState();
                   if (paymentSnapshot.hasError) return _buildErrorState(paymentSnapshot.error.toString());
   
-                  final paymentData = paymentSnapshot.data ?? { 'milkPayments': [], 'feedDeductions': [], 'milkLogs': [] };
+                  final paymentData = paymentSnapshot.data ?? { 'milkPayments': [], 'feedDeductions': [], 'pendingFeeds': [], 'milkLogs': [] };
                   final paymentTotals = _calculatePaymentTotals(paymentData);
   
                   return StreamBuilder<QuerySnapshot>(
@@ -354,9 +365,17 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
 
     // Filter for PENDING only
     final pendingMilk = milkLogs.where((doc) => (doc.data() as Map<String, dynamic>)['status'] == 'pending').toList();
-    final pendingDeductions = feedDeductions.where((doc) => (doc.data() as Map<String, dynamic>)['status'] != 'processed').toList();
+    
+    // CORRECTED: Use the passed pendingFeeds from _fetchPaymentData?
+    // The current signature of _buildMonthlyPendingBreakdown doesn't have it explicitly separate, 
+    // but paymentData has it if we updated _fetchPaymentData return type.
+    // Let's assume paymentData['pendingFeeds'] exists now.
+    final pendingFeeds = paymentData['pendingFeeds'] as List<DocumentSnapshot>? ?? [];
+    
+    // Fallback if not passed (though we updated logic above)
+    // final pendingDeductions = feedDeductions.where((doc) => (doc.data() as Map<String, dynamic>)['status'] != 'processed').toList();
 
-    if (pendingMilk.isEmpty && pendingDeductions.isEmpty) return const SizedBox.shrink();
+    if (pendingMilk.isEmpty && pendingFeeds.isEmpty) return const SizedBox.shrink();
 
     // Group by Month
     final Map<String, Map<String, double>> monthlyStats = {};
@@ -380,10 +399,12 @@ class _FarmerHistoryScreenState extends State<FarmerHistoryScreen> {
     }
 
     // Process Deductions
-    for (var doc in pendingDeductions) {
+    for (var doc in pendingFeeds) {
       final data = doc.data() as Map<String, dynamic>;
-      final date = (data['createdAt'] as Timestamp).toDate();
-      final amount = (data['amount'] ?? 0).toDouble().abs();
+      // Use 'updatedAt' for delivery date, or 'createdAt'
+      final Timestamp ts = data['updatedAt'] ?? data['createdAt'] ?? Timestamp.now();
+      final date = ts.toDate();
+      final amount = (data['cost'] ?? 0).toDouble().abs();
       addToMonth(date, 0, amount);
     }
 
