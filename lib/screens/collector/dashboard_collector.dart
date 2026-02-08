@@ -240,6 +240,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
     );
 
     if (shouldLogout == true) {
+      NotificationService().stopListening(); // Stop global listener
       await SimpleStorageService.clearUserSession();
       await FirebaseAuth.instance.signOut();
       if (context.mounted) {

@@ -25,7 +25,7 @@ class NotificationModel {
       body: data['body'] ?? '',
       type: data['type'] ?? 'info',
       isRead: data['isRead'] ?? false,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : DateTime.now(),
     );
   }
 }

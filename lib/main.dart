@@ -10,6 +10,7 @@ import 'package:podago/screens/auth/login_screen.dart';
 import 'package:podago/screens/auth/role_selection_screen.dart';
 import 'package:podago/screens/farmer/dashboard_farmer.dart';
 import 'package:podago/screens/collector/dashboard_collector.dart';
+import 'package:podago/widgets/notification_manager.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -63,51 +64,30 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  Future<Widget> _checkLocalSession() async {
+  late Future<Map<String, dynamic>?> _sessionFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionFuture = _checkLocalSession();
+  }
+
+  // Returns session data: { 'role': '...', 'userId': '...', 'authType': '...' } or null
+  Future<Map<String, dynamic>?> _checkLocalSession() async {
     debugPrint('🕵️ Checking local session...');
     final localSession = await SimpleStorageService.getUserSession();
 
-    debugPrint('📱 Local storage data: $localSession');
-
     if (localSession != null &&
         await SimpleStorageService.hasValidSession()) {
-      final role = localSession['role'];
-      final userId = localSession['userId'];
-      final authType = localSession['authType'];
-
-      debugPrint(
-          '🎯 Found valid local session: $role for user: $userId (Auth: $authType)');
-
-      if (authType == 'pin') {
-        debugPrint('🔐 PIN-based session → FarmerDashboard');
-        return FarmerDashboard(farmerId: userId);
-      } else {
-        final firebaseUser = FirebaseAuth.instance.currentUser;
-        debugPrint('🔥 Firebase current user: $firebaseUser');
-
-        if (firebaseUser != null && firebaseUser.uid == userId) {
-          debugPrint('✅ Firebase session verified');
-
-          if (role == 'collector') {
-            return const CollectorDashboard();
-          } else if (role == 'farmer') {
-            return FarmerDashboard(farmerId: userId);
-          }
-        } else {
-          debugPrint('⚠️ Firebase session outdated → clearing');
-          await SimpleStorageService.clearUserSession();
-        }
-      }
-    } else {
-      debugPrint('❌ No valid local session found');
+      return {
+        'role': localSession['role'],
+        'userId': localSession['userId'],
+        'authType': localSession['authType'],
+      };
     }
 
     final firebaseUser = FirebaseAuth.instance.currentUser;
-
     if (firebaseUser != null) {
-      debugPrint(
-          '👤 Firebase user found but no local session → checking Firestore');
-
       try {
         final doc = await FirebaseFirestore.instance
             .collection('users')
@@ -116,36 +96,32 @@ class _AuthGateState extends State<AuthGate> {
 
         if (doc.exists) {
           final role = doc.data()?['role'];
+          
+          // Re-save session for consistency
+          await SimpleStorageService.saveFirebaseSession(
+              userId: firebaseUser.uid,
+              userEmail: firebaseUser.email ?? '',
+              role: role ?? 'farmer',
+            );
 
-          if (role == 'collector') {
-            await SimpleStorageService.saveFirebaseSession(
-              userId: firebaseUser.uid,
-              userEmail: firebaseUser.email ?? '',
-              role: 'collector',
-            );
-            return const CollectorDashboard();
-          } else if (role == 'farmer') {
-            await SimpleStorageService.saveFirebaseSession(
-              userId: firebaseUser.uid,
-              userEmail: firebaseUser.email ?? '',
-              role: 'farmer',
-            );
-            return FarmerDashboard(farmerId: firebaseUser.uid);
-          }
+          return {
+            'role': role,
+            'userId': firebaseUser.uid,
+            'authType': 'firebase',
+          };
         }
       } catch (e) {
         debugPrint('❌ Firestore error: $e');
       }
     }
 
-    debugPrint('🚪 No valid session → RoleSelectionScreen');
-    return const RoleSelectionScreen();
+    return null; // No valid session
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Widget>(
-      future: _checkLocalSession(),
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _sessionFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -155,35 +131,36 @@ class _AuthGateState extends State<AuthGate> {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
-                  Text('Loading your session...'),
+                  Text('Loading...'),
                 ],
               ),
             ),
           );
         }
 
-        if (snapshot.hasError) {
-          debugPrint('💥 AuthGate error: ${snapshot.error}');
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Error loading app'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => setState(() {}),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
+        final session = snapshot.data;
+        
+        if (session != null) {
+          final role = session['role'];
+          final userId = session['userId'];
+          final authType = session['authType'];
 
-        final screen = snapshot.data;
-        debugPrint('🏁 Final screen: ${screen.runtimeType}');
-        return screen ?? const RoleSelectionScreen();
+          if (role == 'collector') {
+            return NotificationManager(
+              key: const ValueKey('collector_manager'), // Stable Key
+              userId: userId, 
+              child: const CollectorDashboard()
+            );
+          } else if (role == 'farmer') {
+             return NotificationManager(
+              key: const ValueKey('farmer_manager'), // Stable Key
+              userId: userId, 
+              child: FarmerDashboard(farmerId: userId)
+            );
+          }
+        }
+        
+        return const RoleSelectionScreen();
       },
     );
   }

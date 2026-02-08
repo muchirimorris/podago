@@ -76,6 +76,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   }
 
   Future<void> _logout() async {
+    NotificationService().stopListening(); // Stop global listener
     await SimpleStorageService.clearUserSession();
     await FirebaseAuth.instance.signOut();
     if (mounted) {
