@@ -8,6 +8,7 @@ import 'package:podago/screens/collector/tips_collector.dart';
 import 'package:podago/screens/farmer/support_farmer.dart';
 import 'package:podago/screens/collector/support_collector.dart';
 import 'package:podago/screens/farmer/reports_farmer.dart';
+import 'package:podago/services/chat_service.dart'; // NEW import
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -47,6 +48,7 @@ class BottomNavBar extends StatelessWidget {
           return;
       }
     } else {
+      // Collector Navigation
       switch (index) {
         case 0:
           destination = const CollectorDashboard();
@@ -73,32 +75,80 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<BottomNavigationBarItem> items = [];
+    return StreamBuilder<int>(
+      stream: (role == "farmer" && farmerId != null) 
+          ? ChatService().getUserUnreadCount(farmerId!) 
+          : Stream.value(0),
+      builder: (context, snapshot) {
+        final unreadCount = snapshot.data ?? 0;
+        List<BottomNavigationBarItem> items;
 
-    if (role == "farmer") {
-      items = const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
-        BottomNavigationBarItem(icon: Icon(Icons.lightbulb), label: "Tips"),
-        BottomNavigationBarItem(icon: Icon(Icons.analytics), label: "Reports"),
-        BottomNavigationBarItem(icon: Icon(Icons.headset_mic), label: "Support"),
-      ];
-    } else {
-      items = const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
-        BottomNavigationBarItem(icon: Icon(Icons.lightbulb), label: "Tips"),
-        BottomNavigationBarItem(icon: Icon(Icons.headset_mic), label: "Support"),
-      ];
-    }
+        // Custom function to build BottomNavigationBarItem with potential badge
+        BottomNavigationBarItem _buildItem(IconData icon, String label, bool isSupport) {
+          if (isSupport && unreadCount > 0) {
+            return BottomNavigationBarItem(
+              icon: Stack(
+                children: [
+                  Icon(icon),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 12,
+                        minHeight: 12,
+                      ),
+                      child: Text(
+                        '$unreadCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                ],
+              ),
+              label: label,
+            );
+          }
+          return BottomNavigationBarItem(icon: Icon(icon), label: label);
+        }
 
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (index) => _onItemTapped(context, index),
-      selectedItemColor: Colors.green,
-      unselectedItemColor: Colors.grey,
-      type: BottomNavigationBarType.fixed,
-      items: items,
+        if (role == "farmer") {
+          items = [
+            const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+            const BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
+            const BottomNavigationBarItem(icon: Icon(Icons.lightbulb), label: "Tips"),
+            const BottomNavigationBarItem(icon: Icon(Icons.analytics), label: "Reports"),
+            _buildItem(Icons.headset_mic, "Support", true),
+          ];
+        } else {
+          items = [
+            const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+            const BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
+            const BottomNavigationBarItem(icon: Icon(Icons.lightbulb), label: "Tips"),
+            // Support for collector doesn't have badge logic yet in this reverted state
+            const BottomNavigationBarItem(icon: Icon(Icons.headset_mic), label: "Support"),
+          ];
+        }
+
+        return BottomNavigationBar(
+          currentIndex: currentIndex,
+          onTap: (index) => _onItemTapped(context, index),
+          selectedItemColor: Colors.green,
+          unselectedItemColor: Colors.grey,
+          type: BottomNavigationBarType.fixed,
+          items: items,
+        );
+      }
     );
   }
 }

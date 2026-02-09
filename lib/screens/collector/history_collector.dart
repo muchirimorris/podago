@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:podago/widgets/bottom_nav_bar.dart';
-import 'package:podago/utils/app_theme.dart'; // NEW
+import 'package:podago/utils/app_theme.dart';
 
 class CollectorHistoryScreen extends StatefulWidget {
   const CollectorHistoryScreen({super.key});

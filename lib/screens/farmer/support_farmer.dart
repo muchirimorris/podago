@@ -1,18 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:podago/widgets/bottom_nav_bar.dart';
-import 'package:podago/utils/app_theme.dart'; // NEW
+import 'package:podago/utils/app_theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:podago/screens/shared/chat_screen.dart'; // NEW
 
-class FarmerSupportScreen extends StatelessWidget {
+class FarmerSupportScreen extends StatefulWidget {
   final String farmerId;
 
   const FarmerSupportScreen({super.key, required this.farmerId});
 
-  // --- Professional Theme Colors ---
-  // --- Professional Theme Colors ---
-  // Using AppTheme
+  @override
+  State<FarmerSupportScreen> createState() => _FarmerSupportScreenState();
+}
 
+class _FarmerSupportScreenState extends State<FarmerSupportScreen> {
+  String _farmerName = "Farmer";
+  bool _isLoadingName = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchFarmerName();
+  }
+
+  Future<void> _fetchFarmerName() async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(widget.farmerId).get();
+      if (doc.exists && mounted) {
+        setState(() {
+          _farmerName = doc.data()?['name'] ?? "Farmer";
+          _isLoadingName = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingName = false);
+    }
+  }
 
   Future<void> _launchUrl(String url, BuildContext context) async {
     try {
@@ -67,6 +91,19 @@ class FarmerSupportScreen extends StatelessWidget {
     await _launchUrl(url, context);
   }
 
+  void _openInAppChat() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          userId: widget.farmerId,
+          userName: _farmerName,
+          userRole: 'farmer',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,6 +119,50 @@ class FarmerSupportScreen extends StatelessWidget {
           children: [
             // --- Header Card ---
             _buildHeroCard(),
+            const SizedBox(height: 24),
+
+            // --- NEW: In-App Chat Section ---
+            Text("Live Support", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _openInAppChat,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                  border: Border.all(color: AppTheme.kPrimaryGreen.withOpacity(0.3), width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.kPrimaryGreen.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.chat, color: AppTheme.kPrimaryGreen, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Chat with Support", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Get instant help directly in the app.",
+                            style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.kPrimaryGreen),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
 
             // --- Account Security Section ---
@@ -108,7 +189,7 @@ class FarmerSupportScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // --- Contact Grid (Replaces vertical list) ---
-            Text("Contact Us", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+            Text("Other Ways to Connect", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
             const SizedBox(height: 12),
             GridView.count(
               shrinkWrap: true,
@@ -168,7 +249,7 @@ class FarmerSupportScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.verified_user_outlined, color: Colors.grey.shade400, size: 40),
                   const SizedBox(height: 8),
-                  Text("Support ID: $farmerId", style: TextStyle(color: Colors.grey.shade400, fontSize: 10)),
+                  Text("Support ID: ${widget.farmerId}", style: TextStyle(color: Colors.grey.shade400, fontSize: 10)),
                   const SizedBox(height: 4),
                   Text("v1.0.0 • Podago Secure", style: TextStyle(color: Colors.grey.shade400, fontSize: 10)),
                 ],
@@ -181,7 +262,7 @@ class FarmerSupportScreen extends StatelessWidget {
       bottomNavigationBar: BottomNavBar(
         currentIndex: 4,
         role: "farmer",
-        farmerId: farmerId,
+        farmerId: widget.farmerId,
       ),
     );
   }
@@ -319,7 +400,7 @@ class FarmerSupportScreen extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _ChangePinDialog(farmerDocId: farmerId),
+      builder: (context) => _ChangePinDialog(farmerDocId: widget.farmerId),
     );
   }
 }
