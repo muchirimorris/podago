@@ -317,7 +317,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
           ),
         ),
         bottomNavigationBar: MediaQuery.of(context).viewInsets.bottom == 0 
-            ? const BottomNavBar(currentIndex: 0, role: "collector") 
+            ? BottomNavBar(currentIndex: 0, role: "collector", collectorId: currentCollectorId) 
             : null,
       ),
     );

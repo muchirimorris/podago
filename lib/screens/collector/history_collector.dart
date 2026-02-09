@@ -5,7 +5,8 @@ import 'package:podago/widgets/bottom_nav_bar.dart';
 import 'package:podago/utils/app_theme.dart';
 
 class CollectorHistoryScreen extends StatefulWidget {
-  const CollectorHistoryScreen({super.key});
+  final String? collectorId;
+  const CollectorHistoryScreen({super.key, this.collectorId});
 
   @override
   State<CollectorHistoryScreen> createState() => _CollectorHistoryScreenState();
@@ -98,7 +99,7 @@ class _CollectorHistoryScreenState extends State<CollectorHistoryScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 1, role: "collector"),
+      bottomNavigationBar: BottomNavBar(currentIndex: 1, role: "collector", collectorId: widget.collectorId),
     );
   }
 

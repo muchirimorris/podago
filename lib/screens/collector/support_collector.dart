@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:podago/widgets/bottom_nav_bar.dart';
+import 'package:podago/screens/shared/chat_screen.dart'; // NEW import
 
 class CollectorSupportScreen extends StatelessWidget {
-  const CollectorSupportScreen({super.key});
+  final String? collectorId; // NEW
+
+  const CollectorSupportScreen({super.key, this.collectorId});
 
   // --- Professional Theme Colors ---
   // Using AppTheme constants
@@ -86,7 +89,7 @@ class CollectorSupportScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 3, role: "collector"),
+      bottomNavigationBar: BottomNavBar(currentIndex: 3, role: "collector", collectorId: collectorId),
     );
   }
 
@@ -103,31 +106,63 @@ class CollectorSupportScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Theme.of(context).primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), shape: BoxShape.circle),
-            child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 32),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text("We're here to help", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                SizedBox(height: 4),
-                Text(
-                  "Get assistance with app features, sync issues, or general inquiries.",
-                  style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), shape: BoxShape.circle),
+                  child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 32),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("We're here to help", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 4),
+                      Text(
+                        "Get assistance with app features, sync issues, or general inquiries.",
+                        style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 20),
+            if (collectorId != null)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                     Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatScreen(
+                          userId: collectorId!,
+                          userName: "Collector", 
+                          userRole: "collector",
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.chat, color: Colors.green),
+                  label: const Text("Chat with Support", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
 
   Widget _buildContactGrid(BuildContext context) {
     return GridView.count(

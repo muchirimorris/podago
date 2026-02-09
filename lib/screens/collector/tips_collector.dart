@@ -33,7 +33,8 @@ class CollectorTip {
 }
 
 class CollectorTipsScreen extends StatefulWidget {
-  const CollectorTipsScreen({super.key});
+  final String? collectorId;
+  const CollectorTipsScreen({super.key, this.collectorId});
 
   @override
   State<CollectorTipsScreen> createState() => _CollectorTipsScreenState();
@@ -132,7 +133,7 @@ class _CollectorTipsScreenState extends State<CollectorTipsScreen> {
                         ],
                       ),
                     ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 2, role: "collector"),
+      bottomNavigationBar: BottomNavBar(currentIndex: 2, role: "collector", collectorId: widget.collectorId),
     );
   }
 
