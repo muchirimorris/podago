@@ -5,7 +5,7 @@ class MilkPredictor {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Main prediction method
-  Future<Map<String, dynamic>> predictMilkProduction(String farmerId) async {
+  Future<Map<String, dynamic>> predictMilkProduction(String farmerId, {double pricePerLiter = 45.0}) async {
     try {
       // NOTE: This query requires a Composite Index in Firestore.
       // If the app crashes, check the debug console for a URL to create the index.
@@ -18,7 +18,7 @@ class MilkPredictor {
 
       final logs = snapshot.docs;
       if (logs.isEmpty) {
-        return _getDefaultPredictions();
+        return _getDefaultPredictions(pricePerLiter);
       }
 
       final milkData = _processMilkData(logs);
@@ -26,14 +26,16 @@ class MilkPredictor {
       // Calculate specific predictions
       final dailyPrediction = _predictDailyProduction(milkData);
       final weeklyPrediction = _predictWeeklyProduction(milkData);
-      final monthlyPrediction = _predictMonthlyProduction(milkData);
-      final yearlyPrediction = _predictYearlyProduction(milkData);
+      final monthlyPrediction = _predictMonthlyProduction(milkData, pricePerLiter);
+      final halfYearlyPrediction = _predictHalfYearlyProduction(milkData, pricePerLiter);
+      final yearlyPrediction = _predictYearlyProduction(milkData, pricePerLiter);
       final confidence = _calculateConfidence(milkData);
 
       return {
         'daily': dailyPrediction,
         'weekly': weeklyPrediction,
         'monthly': monthlyPrediction,
+        'halfYearly': halfYearlyPrediction,
         'yearly': yearlyPrediction,
         'confidence': confidence,
         'dataPoints': milkData.length,
@@ -48,7 +50,7 @@ class MilkPredictor {
         print("CRITICAL: Missing Firestore Index. Check console for creation link.");
       }
       print("Prediction error: $e");
-      return _getDefaultPredictions();
+      return _getDefaultPredictions(pricePerLiter);
     }
   }
 
@@ -144,11 +146,12 @@ class MilkPredictor {
     );
   }
 
-  MonthlyPrediction _predictMonthlyProduction(List<MilkDataPoint> milkData) {
+  MonthlyPrediction _predictMonthlyProduction(List<MilkDataPoint> milkData, double pricePerLiter) {
     if (milkData.length < 30) {
       final monthlyEst = _estimateMonthlyFromDaily(milkData);
       return MonthlyPrediction(
         prediction: monthlyEst,
+        predictedRevenue: monthlyEst * pricePerLiter,
         confidence: 0.5,
         trend: 'stable',
       );
@@ -161,6 +164,7 @@ class MilkPredictor {
 
     return MonthlyPrediction(
       prediction: monthlyPrediction * seasonalFactor,
+      predictedRevenue: (monthlyPrediction * seasonalFactor) * pricePerLiter,
       confidence: _calculateMonthlyConfidence(monthlyData),
       trend: _calculateMonthlyTrend(monthlyData),
       seasonalFactor: seasonalFactor,
@@ -168,11 +172,38 @@ class MilkPredictor {
     );
   }
 
-  YearlyPrediction _predictYearlyProduction(List<MilkDataPoint> milkData) {
+  HalfYearlyPrediction _predictHalfYearlyProduction(List<MilkDataPoint> milkData, double pricePerLiter) {
+    // 6-Month Projection (180 days)
+    if (milkData.length < 90) { // Half the period for reliable trend
+      final est = _estimateMonthlyFromDaily(milkData) * 6;
+      return HalfYearlyPrediction(
+        prediction: est,
+        predictedRevenue: est * pricePerLiter,
+        confidence: 0.4,
+        trend: 'stable',
+      );
+    }
+
+    final monthlyData = _groupByMonths(milkData);
+    final monthlyPrediction = _predictTimeSeries(monthlyData, 6); // Avg of last 6 months
+    final adjustedPrediction = monthlyPrediction * 6; // Project forward 6 months
+
+    // Simple seasonal adjustment for 6 months
+    
+    return HalfYearlyPrediction(
+      prediction: adjustedPrediction,
+      predictedRevenue: adjustedPrediction * pricePerLiter,
+      confidence: 0.6,
+      trend: 'stable', // Simplify for now
+    );
+  }
+
+  YearlyPrediction _predictYearlyProduction(List<MilkDataPoint> milkData, double pricePerLiter) {
     if (milkData.length < 180) {
       final yearlyEst = _estimateYearlyFromAvailableData(milkData);
       return YearlyPrediction(
         prediction: yearlyEst,
+        predictedRevenue: yearlyEst * pricePerLiter,
         confidence: 0.3,
         trend: 'stable',
       );
@@ -185,6 +216,7 @@ class MilkPredictor {
 
     return YearlyPrediction(
       prediction: adjustedPrediction,
+      predictedRevenue: adjustedPrediction * pricePerLiter,
       confidence: _calculateYearlyConfidence(yearlyData),
       trend: growthRate > 0.05 ? 'growing' : growthRate < -0.05 ? 'declining' : 'stable',
       growthRate: growthRate,
@@ -508,12 +540,13 @@ class MilkPredictor {
     return basePrediction * factor;
   }
 
-  Map<String, dynamic> _getDefaultPredictions() {
+  Map<String, dynamic> _getDefaultPredictions(double pricePerLiter) {
     return {
       'daily': DailyPrediction(prediction: 15.0, confidence: 0.1, method: 'default', trend: 'stable'),
       'weekly': WeeklyPrediction(prediction: 105.0, confidence: 0.1, trend: 'stable'),
-      'monthly': MonthlyPrediction(prediction: 450.0, confidence: 0.1, trend: 'stable'),
-      'yearly': YearlyPrediction(prediction: 5400.0, confidence: 0.1, trend: 'stable'),
+      'monthly': MonthlyPrediction(prediction: 450.0, predictedRevenue: 450.0 * pricePerLiter, confidence: 0.1, trend: 'stable'),
+      'halfYearly': HalfYearlyPrediction(prediction: 2700.0, predictedRevenue: 2700.0 * pricePerLiter, confidence: 0.1, trend: 'stable'),
+      'yearly': YearlyPrediction(prediction: 5400.0, predictedRevenue: 5400.0 * pricePerLiter, confidence: 0.1, trend: 'stable'),
       'confidence': 0.1,
       'dataPoints': 0,
       'trend': 'insufficient_data',
@@ -573,6 +606,7 @@ class WeeklyPrediction {
 
 class MonthlyPrediction {
   final double prediction;
+  final double predictedRevenue; // NEW
   final double confidence;
   final String trend;
   final double seasonalFactor;
@@ -580,6 +614,7 @@ class MonthlyPrediction {
 
   MonthlyPrediction({
     required this.prediction,
+    required this.predictedRevenue,
     required this.confidence,
     required this.trend,
     this.seasonalFactor = 1.0,
@@ -587,8 +622,23 @@ class MonthlyPrediction {
   });
 }
 
+class HalfYearlyPrediction {
+  final double prediction;
+  final double predictedRevenue;
+  final double confidence;
+  final String trend;
+
+  HalfYearlyPrediction({
+    required this.prediction,
+    required this.predictedRevenue,
+    required this.confidence,
+    required this.trend,
+  });
+}
+
 class YearlyPrediction {
   final double prediction;
+  final double predictedRevenue; // NEW
   final double confidence;
   final String trend;
   final double growthRate;
@@ -596,6 +646,7 @@ class YearlyPrediction {
 
   YearlyPrediction({
     required this.prediction,
+    required this.predictedRevenue,
     required this.confidence,
     required this.trend,
     this.growthRate = 0.0,

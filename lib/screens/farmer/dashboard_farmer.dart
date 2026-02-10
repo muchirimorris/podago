@@ -154,34 +154,123 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
     required String trend,
     required IconData icon,
     required Color color,
+    VoidCallback? onTap,
   }) {
     Color trendColor = trend == 'growing' ? Colors.green : (trend == 'declining' ? Colors.red : Colors.grey);
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: color, size: 18),
+                Icon(
+                  trend == 'growing' ? Icons.trending_up : Icons.trending_flat,
+                  size: 16,
+                  color: trendColor,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+            Text(title, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+            Text(subtitle, style: TextStyle(fontSize: 9, color: Colors.grey[400])),
+          ],
+        ),
       ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+    );
+  }
+
+  void _showPredictionDetails(BuildContext context, String title, double quantity, double revenue, double confidence, String trend) {
+    String confidenceLevel = (confidence * 100).toInt().toString();
+    String message = "";
+    
+    if (confidence > 0.7) {
+      message = "High accuracy based on consistent logging.";
+    } else if (confidence > 0.4) {
+      message = "Moderate accuracy. Continue logging daily for better precision.";
+    } else {
+      message = "Low accuracy due to limited data. Please log milk daily.";
+    }
+
+    if (trend == 'growing') {
+       message += "\n\nProduction is trending upwards! Keep up the good feeding.";
+    } else if (trend == 'declining') {
+       message += "\n\nProduction shows a decline. Check feed quality or cow health.";
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, color: AppTheme.kPrimaryBlue),
+                const SizedBox(width: 12),
+                Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildDetailRow("Expected Yield", "${quantity.toStringAsFixed(0)} Liters"),
+            _buildDetailRow("Estimated Revenue", "KES ${revenue.toStringAsFixed(0)}"),
+            _buildDetailRow("Accuracy Score", "$confidenceLevel%"),
+             const SizedBox(height: 12),
+             Container(
+               padding: const EdgeInsets.all(12),
+               decoration: BoxDecoration(
+                 color: trend == 'growing' ? Colors.green.withOpacity(0.1) : (trend == 'declining' ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1)),
+                 borderRadius: BorderRadius.circular(12),
+                 border: Border.all(color: trend == 'growing' ? Colors.green : (trend == 'declining' ? Colors.red : Colors.grey), width: 0.5)
+               ),
+               child: Text(message, style: const TextStyle(fontSize: 14)),
+             ),
+             const SizedBox(height: 20),
+             SizedBox(
+               width: double.infinity,
+               child: ElevatedButton(
+                 onPressed: () => Navigator.pop(context),
+                 style: ElevatedButton.styleFrom(
+                   backgroundColor: AppTheme.kPrimaryGreen,
+                   foregroundColor: Colors.white,
+                   padding: const EdgeInsets.symmetric(vertical: 16),
+                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                 ),
+                 child: const Text("Got it"),
+               ),
+             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: color, size: 18),
-              Icon(
-                trend == 'growing' ? Icons.trending_up : Icons.trending_flat,
-                size: 16,
-                color: trendColor,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-          Text(title, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-          Text(subtitle, style: TextStyle(fontSize: 9, color: Colors.grey[400])),
+          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),
     );
@@ -554,15 +643,23 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                     const SizedBox(height: 10),
 
                     FutureBuilder<Map<String, dynamic>>(
-                      future: MilkPredictor().predictMilkProduction(widget.farmerId),
+                      future: MilkPredictor().predictMilkProduction(widget.farmerId, pricePerLiter: _pricePerLiter),
                       builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const LinearProgressIndicator(); // Show something while loading
-                        
+                        if (!snapshot.hasData) return const LinearProgressIndicator();
+
                         final data = snapshot.data!;
                         final daily = data['daily'] as DailyPrediction;
-                        final weekly = data['weekly'] as WeeklyPrediction;
                         final monthly = data['monthly'] as MonthlyPrediction;
+                        // Cast safely, assuming backend update is instant, but fallback just in case of hot reload lag
+                        final halfYearly = data['halfYearly'] as HalfYearlyPrediction? ?? 
+                            HalfYearlyPrediction(prediction: 0, predictedRevenue: 0, confidence: 0, trend: 'stable'); 
                         final yearly = data['yearly'] as YearlyPrediction;
+
+                        String _formatRev(double val) {
+                           if (val >= 1000000) return "Rev: ~${(val/1000000).toStringAsFixed(1)}M";
+                           if (val >= 1000) return "Rev: ~${(val/1000).toStringAsFixed(0)}k";
+                           return "Rev: ~${val.toStringAsFixed(0)}";
+                        }
 
                         return GridView.count(
                           crossAxisCount: 2,
@@ -570,12 +667,39 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                           physics: const NeverScrollableScrollPhysics(),
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio: 1.5,
+                          childAspectRatio: 1.4,
                           children: [
-                            _buildPredictionCard(title: "Tomorrow", value: "${daily.prediction.toStringAsFixed(1)} L", subtitle: "Conf: ${(daily.confidence*100).toInt()}%", trend: daily.trend, icon: Icons.wb_sunny, color: AppTheme.kPrimaryBlue),
-                            _buildPredictionCard(title: "Next Week", value: "${weekly.prediction.toStringAsFixed(0)} L", subtitle: "Estimate", trend: weekly.trend, icon: Icons.calendar_view_week, color: Colors.purple),
-                            _buildPredictionCard(title: "Next Month", value: "${monthly.prediction.toStringAsFixed(0)} L", subtitle: "Estimate", trend: monthly.trend, icon: Icons.calendar_month, color: Colors.orange),
-                            _buildPredictionCard(title: "Yearly", value: "${(yearly.prediction/1000).toStringAsFixed(1)}k L", subtitle: "Estimate", trend: yearly.trend, icon: Icons.analytics, color: Colors.teal),
+                            // 1. Monthly
+                            _buildPredictionCard(
+                              title: "Next Month",
+                              value: "${monthly.prediction.toStringAsFixed(0)} L",
+                              subtitle: _formatRev(monthly.predictedRevenue),
+                              trend: monthly.trend,
+                              icon: Icons.calendar_month,
+                              color: Colors.orange,
+                              onTap: () => _showPredictionDetails(context, "Next Month Forecast", monthly.prediction, monthly.predictedRevenue, monthly.confidence, monthly.trend),
+                            ),
+                            // 2. Half-Yearly
+                            _buildPredictionCard(
+                              title: "6 Months",
+                              value: "${(halfYearly.prediction/1000).toStringAsFixed(1)}k L",
+                              subtitle: _formatRev(halfYearly.predictedRevenue),
+                              trend: halfYearly.trend,
+                              icon: Icons.date_range, 
+                              color: Colors.purple,
+                              onTap: () => _showPredictionDetails(context, "6-Month Forecast", halfYearly.prediction, halfYearly.predictedRevenue, halfYearly.confidence, halfYearly.trend),
+                            ),
+                            // 3. Yearly
+                            _buildPredictionCard(
+                              title: "Yearly",
+                              value: "${(yearly.prediction/1000).toStringAsFixed(1)}k L",
+                              subtitle: _formatRev(yearly.predictedRevenue),
+                              trend: yearly.trend,
+                              icon: Icons.analytics,
+                              color: Colors.teal,
+                              onTap: () => _showPredictionDetails(context, "Yearly Forecast", yearly.prediction, yearly.predictedRevenue, yearly.confidence, yearly.trend),
+                            ),
+                            // 4. Daily - REMOVED per user request
                           ],
                         );
                       },
