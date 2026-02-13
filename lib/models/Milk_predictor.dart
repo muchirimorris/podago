@@ -250,9 +250,6 @@ class MilkPredictor {
     if (change < -0.1) return 'declining';
     return 'stable';
   }
-
-  /// UPDATED: Normalizes missing data. 
-  /// If a farmer only logs 3 days in a week, we calculate average and multiply by 7.
   List<double> _groupByWeeks(List<MilkDataPoint> data) {
     final weeklyEstimates = <double>[];
     double weeklySum = 0;
